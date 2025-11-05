@@ -92,6 +92,23 @@ const AppContent = () => {
   };
 
   useEffect(() => {
+    // Unregister old shortcuts first
+    shortcutManager.unregister({
+      key: 'v',
+      ctrl: true,
+    });
+
+    shortcutManager.unregister({
+      key: 'v',
+      ctrl: true,
+      shift: true,
+    });
+
+    shortcutManager.unregister({
+      key: '?',
+    });
+
+    // Register new shortcuts with current handlers
     shortcutManager.register({
       key: 'v',
       ctrl: true,
@@ -112,11 +129,7 @@ const AppContent = () => {
       handler: () => setShowHelp(true),
       description: 'Show help'
     });
-
-    return () => {
-      shortcutManager.destroy();
-    };
-  }, [isListening, location.pathname, isAssistantOpen]);
+  }, [location.pathname, isAssistantOpen, isListening]);
 
   return (
     <div className="min-h-screen flex flex-col">
