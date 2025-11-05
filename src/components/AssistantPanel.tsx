@@ -13,15 +13,17 @@ interface AssistantPanelProps {
   isOpen: boolean;
   onClose: () => void;
   context?: any;
+  autoStartVoice?: boolean;
 }
 
-export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps) => {
+export const AssistantPanel = ({ isOpen, onClose, context, autoStartVoice = false }: AssistantPanelProps) => {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVoiceInput, setIsVoiceInput] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const setListening = useVoiceStore((state) => state.setListening);
+  const hasAutoStarted = useRef(false);
 
   const quickActions = assistantService.getQuickActions(context);
 
@@ -43,6 +45,16 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
       setMessages([greeting]);
     }
   }, [isOpen, context]);
+
+  // Auto-start voice when requested
+  useEffect(() => {
+    if (isOpen && autoStartVoice && !hasAutoStarted.current && !isVoiceInput && !isProcessing) {
+      hasAutoStarted.current = true;
+      handleVoiceInput();
+    } else if (!isOpen) {
+      hasAutoStarted.current = false;
+    }
+  }, [isOpen, autoStartVoice]);
 
   const handleSubmit = async (query: string) => {
     if (!query.trim() || isProcessing) return;

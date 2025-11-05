@@ -62,10 +62,7 @@ const AppContent = () => {
     
     // On product page, open assistant for voice interaction
     if (location.pathname.startsWith('/product/')) {
-      if (!isAssistantOpen) {
-        setAssistantOpen(true);
-        await speechService.speak('Assistant opened. How can I help you?');
-      }
+      setAssistantOpen(true);
       return;
     }
     

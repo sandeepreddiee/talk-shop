@@ -23,19 +23,6 @@ export default function Product() {
     }
   }, [product]);
 
-  // Auto-trigger voice when assistant opens
-  useEffect(() => {
-    if (isAssistantOpen) {
-      // Small delay to let panel render first
-      setTimeout(() => {
-        const voiceButton = document.querySelector('[aria-label="Start voice input"]') as HTMLButtonElement;
-        if (voiceButton) {
-          voiceButton.click();
-        }
-      }, 300);
-    }
-  }, [isAssistantOpen]);
-
   if (!product) {
     return <div className="container py-8">Product not found</div>;
   }
@@ -139,6 +126,7 @@ export default function Product() {
           product,
           page: 'product'
         }}
+        autoStartVoice={true}
       />
     </main>
   );
