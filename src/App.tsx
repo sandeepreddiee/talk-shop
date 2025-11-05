@@ -92,43 +92,36 @@ const AppContent = () => {
   };
 
   useEffect(() => {
-    // Unregister old shortcuts first
-    shortcutManager.unregister({
-      key: 'v',
-      ctrl: true,
-    });
-
-    shortcutManager.unregister({
-      key: 'v',
-      ctrl: true,
-      shift: true,
-    });
-
-    shortcutManager.unregister({
-      key: '?',
-    });
-
-    // Register new shortcuts with current handlers
-    shortcutManager.register({
+    const voiceShortcut = {
       key: 'v',
       ctrl: true,
       handler: handleVoiceToggle,
       description: 'Toggle voice input'
-    });
+    };
 
-    shortcutManager.register({
+    const forceVoiceShortcut = {
       key: 'v',
       ctrl: true,
       shift: true,
       handler: handleVoiceToggle,
       description: 'Force toggle voice input'
-    });
+    };
 
-    shortcutManager.register({
+    const helpShortcut = {
       key: '?',
       handler: () => setShowHelp(true),
       description: 'Show help'
-    });
+    };
+
+    shortcutManager.register(voiceShortcut);
+    shortcutManager.register(forceVoiceShortcut);
+    shortcutManager.register(helpShortcut);
+
+    return () => {
+      shortcutManager.unregister({ key: 'v', ctrl: true });
+      shortcutManager.unregister({ key: 'v', ctrl: true, shift: true });
+      shortcutManager.unregister({ key: '?' });
+    };
   }, [location.pathname, isAssistantOpen, isListening]);
 
   return (
