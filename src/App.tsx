@@ -69,21 +69,36 @@ const AppContent = () => {
     if (isListening) {
       speechService.stopListening();
       setListening(false);
+      setLiveMessage('Voice input stopped');
     } else {
       try {
+        setLiveMessage('Listening...');
         setListening(true);
+        
         const transcript = await speechService.startListening();
         setListening(false);
         
+        console.log('Voice transcript:', transcript);
+        
+        if (!transcript || transcript.trim() === '') {
+          setLiveMessage('No speech detected');
+          await speechService.speak('I did not hear anything. Please try again.');
+          return;
+        }
+        
         const command = voiceCommandParser.parse(transcript);
         if (command) {
+          console.log('Parsed command:', command);
           await executeCommand(command);
         } else {
-          setLiveMessage('Command not recognized');
+          setLiveMessage(`Command not recognized: "${transcript}"`);
           await speechService.speak('Command not recognized. Say what can I say for help');
         }
       } catch (error) {
+        console.error('Voice error:', error);
         setListening(false);
+        setLiveMessage('Voice input failed');
+        await speechService.speak('Voice input failed. Please try again.');
       }
     }
   };
