@@ -19,7 +19,7 @@ export default function Product() {
 
   useEffect(() => {
     if (product) {
-      speechService.speak(`Product page. ${product.name}. Price: $${product.price}. Rating: ${product.rating} stars. Say add to cart, buy now, or press Ctrl V to ask assistant for help.`);
+      speechService.speak(`Product page. ${product.name}. Price: $${product.price}. Rating: ${product.rating} stars. Say add to cart, buy now, or ask assistant for help.`);
     }
   }, [product]);
 
@@ -126,7 +126,6 @@ export default function Product() {
           product,
           page: 'product'
         }}
-        autoStartVoice={true}
       />
     </main>
   );

@@ -60,81 +60,54 @@ const AppContent = () => {
     // Stop any ongoing speech first
     speechService.stopSpeaking();
     
-    // On product page, open assistant for voice interaction
-    if (location.pathname.startsWith('/product/')) {
-      setAssistantOpen(true);
-      return;
-    }
-    
     if (isListening) {
       speechService.stopListening();
       setListening(false);
-      setLiveMessage('Voice input stopped');
     } else {
       try {
-        setLiveMessage('Listening...');
         setListening(true);
-        
         const transcript = await speechService.startListening();
         setListening(false);
         
-        console.log('Voice transcript:', transcript);
-        
-        if (!transcript || transcript.trim() === '') {
-          setLiveMessage('No speech detected');
-          await speechService.speak('I did not hear anything. Please try again.');
-          return;
-        }
-        
         const command = voiceCommandParser.parse(transcript);
         if (command) {
-          console.log('Parsed command:', command);
           await executeCommand(command);
         } else {
-          setLiveMessage(`Command not recognized: "${transcript}"`);
+          setLiveMessage('Command not recognized');
           await speechService.speak('Command not recognized. Say what can I say for help');
         }
       } catch (error) {
-        console.error('Voice error:', error);
         setListening(false);
-        setLiveMessage('Voice input failed');
-        await speechService.speak('Voice input failed. Please try again.');
       }
     }
   };
 
   useEffect(() => {
-    const voiceShortcut = {
+    shortcutManager.register({
       key: 'v',
       ctrl: true,
       handler: handleVoiceToggle,
       description: 'Toggle voice input'
-    };
+    });
 
-    const forceVoiceShortcut = {
+    shortcutManager.register({
       key: 'v',
       ctrl: true,
       shift: true,
       handler: handleVoiceToggle,
       description: 'Force toggle voice input'
-    };
+    });
 
-    const helpShortcut = {
+    shortcutManager.register({
       key: '?',
       handler: () => setShowHelp(true),
       description: 'Show help'
-    };
-
-    shortcutManager.register(voiceShortcut);
-    shortcutManager.register(forceVoiceShortcut);
-    shortcutManager.register(helpShortcut);
+    });
 
     return () => {
-      shortcutManager.unregister({ key: 'v', ctrl: true });
-      shortcutManager.unregister({ key: 'v', ctrl: true, shift: true });
-      shortcutManager.unregister({ key: '?' });
+      shortcutManager.destroy();
     };
-  }, [location.pathname, isAssistantOpen, isListening]);
+  }, [isListening]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -155,16 +128,14 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
-      {!location.pathname.startsWith('/product/') && (
-        <AssistantPanel 
-          isOpen={isAssistantOpen} 
-          onClose={() => setAssistantOpen(false)}
-          context={{
-            page: location.pathname,
-            cartCount: itemCount
-          }}
-        />
-      )}
+      <AssistantPanel 
+        isOpen={isAssistantOpen} 
+        onClose={() => setAssistantOpen(false)}
+        context={{
+          page: location.pathname,
+          cartCount: itemCount
+        }}
+      />
       <HelpOverlay isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
     </div>
