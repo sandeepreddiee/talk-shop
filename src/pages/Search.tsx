@@ -1,10 +1,20 @@
 import { useParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import { productService } from '@/services/productService';
 import { ProductCard } from '@/components/ProductCard';
+import { speechService } from '@/services/speechService';
 
 export default function Search() {
   const { query } = useParams();
   const products = productService.searchProducts(query || '');
+
+  useEffect(() => {
+    const count = products.length;
+    const message = count === 1 
+      ? '1 result loaded' 
+      : `${count} results loaded`;
+    speechService.speak(message);
+  }, [products.length]);
 
   return (
     <main id="main-content" className="container py-8 px-4">

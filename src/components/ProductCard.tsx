@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Volume2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { speechService } from '@/services/speechService';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,11 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
   const navigate = useNavigate();
+
+  const handleFocus = () => {
+    const description = `${product.name}. Price $${product.price}. Rating ${product.rating} stars with ${product.reviewCount} reviews.`;
+    speechService.speak(description);
+  };
 
   const handleClick = () => {
     navigate(`/product/${product.id}`);
@@ -29,6 +35,7 @@ export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
       className="group cursor-pointer hover:shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
       onClick={handleClick}
       onKeyPress={handleKeyPress}
+      onFocus={handleFocus}
       tabIndex={0}
       role="article"
       aria-label={`${product.name}, $${product.price}, ${product.rating} stars, ${product.reviewCount} reviews`}
