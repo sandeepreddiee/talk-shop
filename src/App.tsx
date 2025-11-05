@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { SkipToContentLink } from "./components/SkipToContentLink";
@@ -15,7 +15,6 @@ import { speechService } from "./services/speechService";
 import { voiceCommandParser } from "./services/voiceCommands";
 import { shortcutManager } from "./services/shortcutManager";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Search from "./pages/Search";
 import Product from "./pages/Product";
@@ -65,7 +64,9 @@ const AppContent = () => {
       description: 'Toggle voice input'
     });
 
-    return () => shortcutManager.destroy();
+    return () => {
+      shortcutManager.destroy();
+    };
   }, [isListening]);
 
   return (
