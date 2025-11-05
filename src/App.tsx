@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { SkipToContentLink } from "./components/SkipToContentLink";
@@ -12,6 +12,7 @@ import { AssistantPanel } from "./components/AssistantPanel";
 import { LiveRegion } from "./components/LiveRegion";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { useVoiceStore } from "./stores/useVoiceStore";
+import { useCartStore } from "./stores/useCartStore";
 import { speechService } from "./services/speechService";
 import { voiceCommandParser } from "./services/voiceCommands";
 import { shortcutManager } from "./services/shortcutManager";
@@ -32,7 +33,9 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
+  const location = useLocation();
   const { isListening, setListening, isAssistantOpen, setAssistantOpen } = useVoiceStore();
+  const itemCount = useCartStore((state) => state.itemCount);
   const [liveMessage, setLiveMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -122,7 +125,14 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
-      <AssistantPanel isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
+      <AssistantPanel 
+        isOpen={isAssistantOpen} 
+        onClose={() => setAssistantOpen(false)}
+        context={{
+          page: location.pathname,
+          cartCount: itemCount
+        }}
+      />
       <HelpOverlay isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
     </div>

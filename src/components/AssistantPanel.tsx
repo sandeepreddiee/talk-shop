@@ -31,6 +31,19 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
     }
   }, [messages]);
 
+  useEffect(() => {
+    // Greet with context when opened
+    if (isOpen && messages.length === 0 && context?.product) {
+      const greeting: AssistantMessage = {
+        id: 'greeting',
+        role: 'assistant',
+        content: `Hi! I can help you with this product. Ask me about the price, features, reviews, or anything else!`,
+        timestamp: new Date()
+      };
+      setMessages([greeting]);
+    }
+  }, [isOpen, context]);
+
   const handleSubmit = async (query: string) => {
     if (!query.trim() || isProcessing) return;
 
@@ -57,9 +70,17 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
 
       setMessages((prev) => [...prev, assistantMessage]);
       
+      // Speak the response
       await speechService.speak(response.response);
     } catch (error) {
       console.error('Assistant error:', error);
+      const errorMessage: AssistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'I apologize, I encountered an error. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
     }

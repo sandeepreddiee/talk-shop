@@ -41,6 +41,11 @@ export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowH
         await speechService.speak('Opening account preferences');
         break;
 
+      case 'OPEN_ASSISTANT':
+        setAssistantOpen(true);
+        await speechService.speak('Opening shopping assistant');
+        break;
+
       case 'SEARCH':
         if (command.parameters?.query) {
           navigate(`/s/${encodeURIComponent(command.parameters.query)}`);
@@ -53,7 +58,9 @@ export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowH
         if (productMatch) {
           addItem(productMatch[1]);
           toast.success('Added to cart');
-          await speechService.speak('Added to cart');
+          await speechService.speak('Item added to your shopping cart');
+        } else {
+          await speechService.speak('Please open a product page first');
         }
         break;
 
@@ -61,18 +68,50 @@ export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowH
         const buyProductMatch = location.pathname.match(/\/product\/(.+)/);
         if (buyProductMatch) {
           addItem(buyProductMatch[1]);
-          navigate('/cart');
+          navigate('/checkout');
           await speechService.speak('Added to cart. Taking you to checkout');
+        } else {
+          await speechService.speak('Please open a product page first');
         }
         break;
 
       case 'CHECKOUT':
-        navigate('/checkout');
-        await speechService.speak('Proceeding to checkout');
+        if (location.pathname === '/cart') {
+          navigate('/checkout');
+          await speechService.speak('Proceeding to checkout');
+        } else {
+          navigate('/cart');
+          await speechService.speak('Opening your cart. Say checkout to proceed.');
+        }
+        break;
+
+      case 'CONFIRM_ORDER':
+        if (location.pathname === '/checkout') {
+          await speechService.speak('Please fill in your address and press Place Order');
+        } else {
+          await speechService.speak('Please go to checkout first');
+        }
         break;
 
       case 'READ_PAGE':
         await speechService.speak(getPageDescription());
+        break;
+
+      case 'READ_PRODUCT':
+        const readProductMatch = location.pathname.match(/\/product\/(.+)/);
+        if (readProductMatch) {
+          await speechService.speak('Reading product details. Ask me questions or say add to cart');
+        } else {
+          await speechService.speak('Not on a product page');
+        }
+        break;
+
+      case 'NEXT_PRODUCT':
+        await speechService.speak('Use tab key to navigate to next product');
+        break;
+
+      case 'PREVIOUS_PRODUCT':
+        await speechService.speak('Use shift tab to go back');
         break;
 
       case 'SHOW_HELP':
