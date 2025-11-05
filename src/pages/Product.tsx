@@ -19,9 +19,22 @@ export default function Product() {
 
   useEffect(() => {
     if (product) {
-      speechService.speak(`Product page. ${product.name}. Price: $${product.price}. Rating: ${product.rating} stars. Say add to cart, buy now, or ask assistant for help.`);
+      speechService.speak(`Product page. ${product.name}. Price: $${product.price}. Rating: ${product.rating} stars. Say add to cart, buy now, or press Ctrl V to ask assistant for help.`);
     }
   }, [product]);
+
+  // Auto-trigger voice when assistant opens
+  useEffect(() => {
+    if (isAssistantOpen) {
+      // Small delay to let panel render first
+      setTimeout(() => {
+        const voiceButton = document.querySelector('[aria-label="Start voice input"]') as HTMLButtonElement;
+        if (voiceButton) {
+          voiceButton.click();
+        }
+      }, 300);
+    }
+  }, [isAssistantOpen]);
 
   if (!product) {
     return <div className="container py-8">Product not found</div>;

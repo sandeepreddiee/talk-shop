@@ -60,6 +60,15 @@ const AppContent = () => {
     // Stop any ongoing speech first
     speechService.stopSpeaking();
     
+    // On product page, open assistant for voice interaction
+    if (location.pathname.startsWith('/product/')) {
+      if (!isAssistantOpen) {
+        setAssistantOpen(true);
+        await speechService.speak('Assistant opened. How can I help you?');
+      }
+      return;
+    }
+    
     if (isListening) {
       speechService.stopListening();
       setListening(false);
@@ -128,14 +137,16 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
-      <AssistantPanel 
-        isOpen={isAssistantOpen} 
-        onClose={() => setAssistantOpen(false)}
-        context={{
-          page: location.pathname,
-          cartCount: itemCount
-        }}
-      />
+      {!location.pathname.startsWith('/product/') && (
+        <AssistantPanel 
+          isOpen={isAssistantOpen} 
+          onClose={() => setAssistantOpen(false)}
+          context={{
+            page: location.pathname,
+            cartCount: itemCount
+          }}
+        />
+      )}
       <HelpOverlay isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
     </div>
