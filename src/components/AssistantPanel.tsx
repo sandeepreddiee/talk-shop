@@ -115,15 +115,15 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
     <aside
       className="fixed right-0 top-16 bottom-0 w-96 bg-background border-l shadow-lg z-30 flex flex-col"
       role="complementary"
-      aria-label="Shopping Assistant"
+      aria-label="Voice Helper"
     >
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold text-lg">Shopping Assistant</h2>
+        <h2 className="font-semibold text-lg">Voice Helper</h2>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          aria-label="Close assistant"
+          aria-label="Close voice helper"
         >
           <X className="h-5 w-5" />
         </Button>
@@ -132,8 +132,8 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         {messages.length === 0 ? (
           <div className="text-center text-muted-foreground mt-8">
-            <p className="mb-4">Hello! I'm your shopping assistant.</p>
-            <p className="text-sm">Try asking me about products, reviews, or comparisons.</p>
+            <p className="mb-4">Hello! How can I help you today?</p>
+            <p className="text-sm">Ask me about products, reviews, or comparisons.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -176,7 +176,7 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
             onKeyPress={(e) => e.key === 'Enter' && handleSubmit(input)}
             placeholder="Ask me anything..."
             disabled={isProcessing || isVoiceInput}
-            aria-label="Assistant message input"
+            aria-label="Message input"
           />
           <VoiceButton
             isListening={isVoiceInput}
