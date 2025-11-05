@@ -3,7 +3,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { speechService } from '@/services/speechService';
 
 export default function Home() {
-  const products = productService.getAllProducts().slice(0, 12);
+  const products = productService.getAllProducts();
 
   const handleQuickListen = async (product: any) => {
     await speechService.speak(`${product.name}. Price: $${product.price}. Rating: ${product.rating} stars.`);
@@ -19,7 +19,7 @@ export default function Home() {
       </section>
 
       <section aria-labelledby="products-heading">
-        <h2 id="products-heading" className="text-2xl font-bold mb-6">Featured Products</h2>
+        <h2 id="products-heading" className="text-2xl font-bold mb-6">All Products ({products.length} items)</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard
