@@ -38,22 +38,6 @@ export const HelpOverlay = ({ isOpen, onClose }: HelpOverlayProps) => {
                 <dd className="text-muted-foreground">Force toggle voice input</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="font-mono bg-muted px-2 py-1 rounded">/</dt>
-                <dd className="text-muted-foreground">Focus search bar</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-mono bg-muted px-2 py-1 rounded">g h</dt>
-                <dd className="text-muted-foreground">Go to home</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-mono bg-muted px-2 py-1 rounded">g c</dt>
-                <dd className="text-muted-foreground">Go to cart</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-mono bg-muted px-2 py-1 rounded">g o</dt>
-                <dd className="text-muted-foreground">Go to orders</dd>
-              </div>
-              <div className="flex justify-between">
                 <dt className="font-mono bg-muted px-2 py-1 rounded">?</dt>
                 <dd className="text-muted-foreground">Show this help dialog</dd>
               </div>
