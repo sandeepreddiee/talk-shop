@@ -57,6 +57,9 @@ const AppContent = () => {
   };
 
   const handleVoiceToggle = async () => {
+    // Stop any ongoing speech first
+    speechService.stopSpeaking();
+    
     if (isListening) {
       speechService.stopListening();
       setListening(false);
