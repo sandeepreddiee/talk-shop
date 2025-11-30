@@ -40,6 +40,7 @@ import { DemoMode } from "./components/DemoMode";
 import { useRealtimeOrders } from "./hooks/useRealtimeOrders";
 import { useRealtimeCart } from "./hooks/useRealtimeCart";
 import { supabase } from "./integrations/supabase/client";
+import VoiceInterface from "./components/VoiceInterface";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const AppContent = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [isAISpeaking, setIsAISpeaking] = useState(false);
   
   const { executeCommand } = useVoiceCommands(setLiveMessage, setShowHelp);
   usePreferenceEffects();
@@ -221,6 +223,7 @@ const AppContent = () => {
       />
       <HelpOverlay isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
+      <VoiceInterface onSpeakingChange={setIsAISpeaking} />
     </div>
   );
 };
