@@ -6,6 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { speechService } from '@/services/speechService';
+import { z } from 'zod';
+
+const signupSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string()
+    .min(6, 'Password must be at least 6 characters')
+    .max(72, 'Password must be less than 72 characters')
+});
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -15,15 +23,33 @@ export default function Signup() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate inputs
+    const validation = signupSchema.safeParse({ email, password });
+    if (!validation.success) {
+      const errorMessage = validation.error.issues[0].message;
+      toast.error(errorMessage);
+      speechService.speak(errorMessage);
+      return;
+    }
+
     setLoading(true);
 
     try {
       const { error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('already registered')) {
+          throw new Error('This email is already registered. Please sign in instead.');
+        }
+        throw error;
+      }
 
       toast.success('Account created successfully!');
       speechService.speak('Account created successfully. You are now signed in.');

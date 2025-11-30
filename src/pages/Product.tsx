@@ -7,6 +7,7 @@ import { useCartStore } from '@/stores/useCartStore';
 import { useVoiceStore } from '@/stores/useVoiceStore';
 import { speechService } from '@/services/speechService';
 import { AssistantPanel } from '@/components/AssistantPanel';
+import { WishlistButton } from '@/components/WishlistButton';
 import { toast } from 'sonner';
 import { ShoppingCart, Zap, MessageCircle } from 'lucide-react';
 import { Product } from '@/types';
@@ -191,7 +192,7 @@ export default function ProductPage() {
             </Button>
           </div>
           
-          <div className="flex gap-4">
+          <div>
             <Button 
               onClick={handleAddToCart} 
               size="lg" 
@@ -214,6 +215,12 @@ export default function ProductPage() {
               Buy Now
             </Button>
           </div>
+
+          <WishlistButton
+            productId={product.id}
+            productName={product.name}
+            size="lg"
+          />
 
           <div className="text-sm text-muted-foreground space-y-1">
             <p><strong>Voice commands:</strong></p>

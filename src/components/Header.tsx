@@ -1,10 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, User, Package } from 'lucide-react';
+import { Search, ShoppingCart, User, Package, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { VoiceButton } from './VoiceButton';
 import { useCartStore } from '@/stores/useCartStore';
 import { useVoiceStore } from '@/stores/useVoiceStore';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { speechService } from '@/services/speechService';
 import { useState } from 'react';
 import {
   Select,
@@ -22,6 +26,7 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
   const navigate = useNavigate();
   const itemCount = useCartStore((state) => state.itemCount);
   const isListening = useVoiceStore((state) => state.isListening);
+  const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const categories = ['Audio', 'Wearables', 'Accessories', 'Gaming', 'Video', 'Power'];
 
@@ -29,6 +34,15 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/s/${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      toast.success('Signed out successfully');
+      speechService.speak('Signed out successfully');
+      navigate('/');
     }
   };
 
@@ -81,43 +95,75 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
         </form>
 
         <nav className="flex items-center gap-2" aria-label="Main navigation">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/orders')}
-            aria-label="Orders"
-          >
-            <span className="hidden sm:inline">Orders</span>
-            <Package className="h-5 w-5 sm:ml-2" aria-hidden="true" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/account')}
-            aria-label="Account"
-          >
-            <span className="hidden sm:inline">Account</span>
-            <User className="h-5 w-5 sm:ml-2" aria-hidden="true" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/cart')}
-            className="relative"
-            aria-label={`Cart, ${itemCount} items`}
-          >
-            <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-            {itemCount > 0 && (
-              <span
-                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                aria-hidden="true"
+          {user ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/wishlist')}
+                aria-label="Wishlist"
               >
-                {itemCount}
-              </span>
-            )}
-          </Button>
+                <span className="hidden sm:inline">Wishlist</span>
+                <Heart className="h-5 w-5 sm:ml-2" aria-hidden="true" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/orders')}
+                aria-label="Orders"
+              >
+                <span className="hidden sm:inline">Orders</span>
+                <Package className="h-5 w-5 sm:ml-2" aria-hidden="true" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/account')}
+                aria-label="Account"
+              >
+                <span className="hidden sm:inline">Account</span>
+                <User className="h-5 w-5 sm:ml-2" aria-hidden="true" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/cart')}
+                className="relative"
+                aria-label={`Cart, ${itemCount} items`}
+              >
+                <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+                {itemCount > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    {itemCount}
+                  </span>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                aria-label="Sign out"
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+                Sign In
+              </Button>
+              <Button size="sm" onClick={() => navigate('/signup')}>
+                Sign Up
+              </Button>
+            </>
+          )}
         </nav>
       </div>
     </header>
