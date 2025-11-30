@@ -3,6 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 export const assistantService = {
   processQuery: async (query: string, context?: any): Promise<{ response: string }> => {
     try {
+      console.log('🔍 AssistantService - Sending to edge function:', {
+        query,
+        productName: context?.product?.name,
+        productId: context?.product?.id,
+        fullContext: context
+      });
+
       const { data, error } = await supabase.functions.invoke('voice-assistant', {
         body: {
           query,
@@ -12,9 +19,10 @@ export const assistantService = {
 
       if (error) throw error;
       
+      console.log('✅ AssistantService - Received response:', data);
       return { response: data.response };
     } catch (error) {
-      console.error('Assistant error:', error);
+      console.error('❌ Assistant error:', error);
       return { 
         response: 'I apologize, I am having trouble processing your request right now. Please try again.' 
       };
