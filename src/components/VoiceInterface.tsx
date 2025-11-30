@@ -41,7 +41,19 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     } else if (event.type === 'input_audio_buffer.speech_stopped') {
       console.log('🎤 User stopped speaking');
     } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
-      console.log('📝 Transcription:', event.transcript);
+      const transcript = event.transcript?.toLowerCase() || '';
+      console.log('📝 Transcription:', transcript);
+      
+      // Check if user wants to stop the conversation
+      if (transcript.includes('stop listening') || 
+          transcript.includes('stop conversation') ||
+          transcript.includes('end conversation') ||
+          transcript.includes('disconnect') ||
+          transcript.includes('goodbye') ||
+          transcript.includes('bye')) {
+        console.log('🛑 User requested to stop conversation');
+        endConversation();
+      }
     }
   };
 
