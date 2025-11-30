@@ -3,6 +3,9 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 import { Mic, MicOff } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useCartStore } from '@/stores/useCartStore';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VoiceInterfaceProps {
   onSpeakingChange: (speaking: boolean) => void;
@@ -13,6 +16,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const chatRef = useRef<RealtimeChat | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { addItem } = useCartStore();
 
   const handleMessage = (event: any) => {
     console.log('📩 Received message:', event.type, event);
@@ -57,13 +63,95 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     }
   };
 
+  const getClientTools = () => ({
+    add_to_cart: async (args: { quantity?: number }) => {
+      const quantity = args.quantity || 1;
+      
+      // Get current product from URL
+      const match = location.pathname.match(/\/product\/([^/]+)/);
+      if (!match) {
+        return { success: false, message: "No product currently viewing" };
+      }
+      
+      const productId = match[1];
+      const { data: product } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+      
+      if (!product) {
+        return { success: false, message: "Product not found" };
+      }
+      
+      await addItem(productId, quantity);
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
+      });
+      
+      return { success: true, message: `Added ${quantity} ${product.name} to cart` };
+    },
+    
+    navigate: async (args: { page: string }) => {
+      const routes: Record<string, string> = {
+        home: '/',
+        cart: '/cart',
+        checkout: '/checkout',
+        search: '/search',
+        wishlist: '/wishlist',
+        orders: '/orders'
+      };
+      
+      const route = routes[args.page];
+      if (route) {
+        navigate(route);
+        return { success: true, message: `Navigated to ${args.page}` };
+      }
+      
+      return { success: false, message: "Unknown page" };
+    },
+    
+    get_product_info: async () => {
+      const match = location.pathname.match(/\/product\/([^/]+)/);
+      if (!match) {
+        return { success: false, message: "Not viewing a product" };
+      }
+      
+      const { data: product } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', match[1])
+        .single();
+      
+      if (!product) {
+        return { success: false, message: "Product not found" };
+      }
+      
+      return {
+        success: true,
+        product: {
+          name: product.name,
+          price: product.price,
+          originalPrice: product.original_price,
+          rating: product.rating,
+          reviews: product.reviews,
+          description: product.description,
+          features: product.features,
+          inStock: product.in_stock,
+          category: product.category
+        }
+      };
+    }
+  });
+
   const startConversation = async () => {
     setIsLoading(true);
     try {
       // Request microphone permission first
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      chatRef.current = new RealtimeChat(handleMessage);
+      chatRef.current = new RealtimeChat(handleMessage, getClientTools());
       await chatRef.current.init();
       setIsConnected(true);
       

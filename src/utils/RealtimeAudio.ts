@@ -65,10 +65,15 @@ export class RealtimeChat {
   private dc: RTCDataChannel | null = null;
   private audioEl: HTMLAudioElement;
   private recorder: AudioRecorder | null = null;
+  private clientTools: Record<string, (args: any) => Promise<any>>;
 
-  constructor(private onMessage: (message: any) => void) {
+  constructor(
+    private onMessage: (message: any) => void,
+    clientTools?: Record<string, (args: any) => Promise<any>>
+  ) {
     this.audioEl = document.createElement("audio");
     this.audioEl.autoplay = true;
+    this.clientTools = clientTools || {};
   }
 
   async init() {
@@ -127,9 +132,15 @@ export class RealtimeChat {
         console.error('📡 Data channel error:', error);
       };
       
-      this.dc.addEventListener("message", (e) => {
+      this.dc.addEventListener("message", async (e) => {
         const event = JSON.parse(e.data);
         console.log("📨 Received event:", event.type, event);
+        
+        // Handle function calls
+        if (event.type === 'response.function_call_arguments.done') {
+          await this.handleFunctionCall(event);
+        }
+        
         this.onMessage(event);
       });
 
@@ -225,6 +236,41 @@ export class RealtimeChat {
 
     this.dc.send(JSON.stringify(event));
     this.dc.send(JSON.stringify({type: 'response.create'}));
+  }
+
+  private async handleFunctionCall(event: any) {
+    const { call_id, name, arguments: argsString } = event;
+    console.log('🔧 Function call:', name, argsString);
+    
+    try {
+      const args = JSON.parse(argsString);
+      const tool = this.clientTools[name];
+      
+      if (!tool) {
+        console.error('Tool not found:', name);
+        return;
+      }
+      
+      const result = await tool(args);
+      console.log('✅ Function result:', result);
+      
+      // Send function output back to the API
+      if (this.dc?.readyState === 'open') {
+        this.dc.send(JSON.stringify({
+          type: 'conversation.item.create',
+          item: {
+            type: 'function_call_output',
+            call_id,
+            output: JSON.stringify(result)
+          }
+        }));
+        
+        // Trigger a new response
+        this.dc.send(JSON.stringify({ type: 'response.create' }));
+      }
+    } catch (error) {
+      console.error('❌ Function call error:', error);
+    }
   }
 
   disconnect() {
