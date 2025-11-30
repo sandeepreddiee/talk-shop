@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '@/stores/useCartStore';
+import { useCheckoutStore } from '@/stores/useCheckoutStore';
 import { productService } from '@/services/database/productService';
 import { orderService } from '@/services/database/orderService';
 import { Button } from '@/components/ui/button';
@@ -17,9 +18,15 @@ import { playSuccessSound, playErrorSound } from '@/components/AudioFeedback';
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, clearCart, loadCart } = useCartStore();
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [zipCode, setZipCode] = useState('');
+  const { 
+    address, 
+    city, 
+    zipCode, 
+    setAddress, 
+    setCity, 
+    setZipCode,
+    clearAddress 
+  } = useCheckoutStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [loading, setLoading] = useState(true);
@@ -84,6 +91,7 @@ export default function Checkout() {
       const orderId = await orderService.createOrder(orderItems, address, city, zipCode);
       
       await clearCart();
+      clearAddress();
       
       toast.success('Order placed successfully!');
       playSuccessSound();

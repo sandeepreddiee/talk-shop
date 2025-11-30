@@ -79,6 +79,37 @@ Be conversational, helpful, and concise. Remember this is a voice interface, so 
               type: "object",
               properties: {}
             }
+          },
+          {
+            type: "function",
+            name: "update_shipping_address",
+            description: "Update the shipping address fields on the checkout page. User can provide address, city, and/or ZIP code.",
+            parameters: {
+              type: "object",
+              properties: {
+                address: {
+                  type: "string",
+                  description: "Street address (e.g., '123 Main Street')"
+                },
+                city: {
+                  type: "string",
+                  description: "City name (e.g., 'New York')"
+                },
+                zipCode: {
+                  type: "string",
+                  description: "5-digit ZIP code (e.g., '10001')"
+                }
+              }
+            }
+          },
+          {
+            type: "function",
+            name: "place_order",
+            description: "Submit the checkout form and place the order",
+            parameters: {
+              type: "object",
+              properties: {}
+            }
           }
         ]
       }),
