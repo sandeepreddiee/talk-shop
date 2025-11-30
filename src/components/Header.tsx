@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { productService } from '@/services/productService';
 
 interface HeaderProps {
   onVoiceToggle: () => void;
@@ -24,7 +23,7 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
   const itemCount = useCartStore((state) => state.itemCount);
   const isListening = useVoiceStore((state) => state.isListening);
   const [searchQuery, setSearchQuery] = useState('');
-  const categories = productService.getCategories();
+  const categories = ['Audio', 'Wearables', 'Accessories', 'Gaming', 'Video', 'Power'];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +94,7 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/account/preferences')}
+            onClick={() => navigate('/account')}
             aria-label="Account"
           >
             <span className="hidden sm:inline">Account</span>

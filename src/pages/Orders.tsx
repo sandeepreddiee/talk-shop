@@ -1,11 +1,35 @@
 import { Link } from 'react-router-dom';
-import { orderService } from '@/services/orderService';
+import { useEffect, useState } from 'react';
+import { orderService } from '@/services/database/orderService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Order } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { activityService } from '@/services/activityService';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 
 export default function Orders() {
-  const orders = orderService.getOrders();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadOrders = async () => {
+    try {
+      const data = await orderService.getOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+    activityService.logActivity('view_orders', { orderCount: orders.length });
+  }, []);
+
+  useRealtimeOrders(loadOrders);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -13,10 +37,27 @@ export default function Orders() {
         return 'bg-green-500';
       case 'shipped':
         return 'bg-blue-500';
+      case 'processing':
+        return 'bg-orange-500';
+      case 'cancelled':
+        return 'bg-red-500';
       default:
         return 'bg-yellow-500';
     }
   };
+
+  if (loading) {
+    return (
+      <main id="main-content" className="container py-8 px-4">
+        <Skeleton className="h-8 w-64 mb-6" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full" />
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   if (orders.length === 0) {
     return (
@@ -47,9 +88,9 @@ export default function Orders() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg">{order.id}</CardTitle>
+                  <CardTitle className="text-lg">Order #{order.id.slice(0, 8)}</CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Placed on {new Date(order.date).toLocaleDateString()}
+                    Placed on {order.date}
                   </p>
                 </div>
                 <Badge className={getStatusColor(order.status)}>
@@ -65,6 +106,9 @@ export default function Orders() {
                       src={item.image}
                       alt={item.name}
                       className="w-20 h-20 object-cover rounded"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';
+                      }}
                     />
                     <div className="flex-1">
                       <h3 className="font-medium">{item.name}</h3>
