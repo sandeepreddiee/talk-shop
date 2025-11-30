@@ -14,6 +14,15 @@ serve(async (req) => {
   try {
     const { query, context } = await req.json();
     
+    console.log('🔍 Edge Function - Received request:', {
+      query,
+      hasContext: !!context,
+      hasProduct: !!context?.product,
+      productName: context?.product?.name,
+      productId: context?.product?.id,
+      fullProduct: context?.product
+    });
+    
     if (!query) {
       throw new Error('Query is required');
     }
