@@ -49,15 +49,15 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isProcessing && !isVoiceInput) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
         e.preventDefault();
-        handleVoiceInput();
+        if (!isVoiceInput) startContinuousVoiceInput();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isProcessing, isVoiceInput]);
+  }, [isOpen, isVoiceInput]);
 
   const handleSubmit = async (query: string) => {
     if (!query.trim() || isProcessing) return;
@@ -101,22 +101,27 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
     }
   };
 
-  const handleVoiceInput = async () => {
+  const startContinuousVoiceInput = async () => {
+    if (isVoiceInput) return;
+
     setIsVoiceInput(true);
     setListening(true);
 
     try {
-      const transcript = await speechService.startListening();
-      setListening(false);
+      await speechService.startContinuousListening(
+        async (finalText) => {
+          await handleSubmit(finalText);
+        },
+        () => {
+          // STOP KEYWORD triggered
+          setIsVoiceInput(false);
+          setListening(false);
+        }
+      );
+    } catch (err) {
+      console.error("Continuous voice error:", err);
       setIsVoiceInput(false);
-      
-      if (transcript) {
-        await handleSubmit(transcript);
-      }
-    } catch (error) {
-      console.error('Voice input error:', error);
       setListening(false);
-      setIsVoiceInput(false);
     }
   };
 
@@ -195,7 +200,7 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
           />
           <VoiceButton
             isListening={isVoiceInput}
-            onClick={handleVoiceInput}
+            onClick={startContinuousVoiceInput}
             variant="outline"
           />
           <Button
