@@ -6,6 +6,7 @@ import { Mic, MicOff } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCartStore } from '@/stores/useCartStore';
 import { supabase } from '@/integrations/supabase/client';
+import { speechService } from '@/services/speechService';
 
 interface VoiceInterfaceProps {
   onSpeakingChange: (speaking: boolean) => void;
@@ -25,11 +26,15 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     
     if (event.type === 'session.created') {
       console.log('✅ Session created successfully');
+      // Stop any ongoing screen reader speech when AI chat starts
+      speechService.stopSpeaking();
       toast({
         title: "Connected",
         description: "AI is ready. Start speaking!",
       });
     } else if (event.type === 'response.audio.delta') {
+      // Stop screen reader when AI starts speaking
+      speechService.stopSpeaking();
       onSpeakingChange(true);
     } else if (event.type === 'response.audio.done') {
       onSpeakingChange(false);
@@ -44,6 +49,8 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       });
     } else if (event.type === 'input_audio_buffer.speech_started') {
       console.log('🎤 User started speaking');
+      // Stop screen reader when user starts speaking to AI
+      speechService.stopSpeaking();
     } else if (event.type === 'input_audio_buffer.speech_stopped') {
       console.log('🎤 User stopped speaking');
     } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
@@ -156,6 +163,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
   const startConversation = async () => {
     setIsLoading(true);
     try {
+      // Stop any ongoing screen reader speech before starting AI chat
+      speechService.stopSpeaking();
+      
       // Request microphone permission first
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
