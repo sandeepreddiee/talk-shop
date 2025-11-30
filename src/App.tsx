@@ -27,8 +27,14 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Orders from "./pages/Orders";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Account from "./pages/Account";
+import AccessibilityMetrics from "./pages/AccessibilityMetrics";
 import NotFound from "./pages/NotFound";
+import { AuthGuard } from "./components/AuthGuard";
+import { DemoMode } from "./components/DemoMode";
+import { useRealtimeOrders } from "./hooks/useRealtimeOrders";
+import { useRealtimeCart } from "./hooks/useRealtimeCart";
 
 const queryClient = new QueryClient();
 
@@ -41,7 +47,14 @@ const AppContent = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   
   const { executeCommand } = useVoiceCommands(setLiveMessage, setShowHelp);
+  const loadCart = useCartStore(state => state.loadCart);
   usePreferenceEffects();
+  useRealtimeOrders();
+  useRealtimeCart();
+
+  useEffect(() => {
+    loadCart();
+  }, []);
 
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
@@ -119,14 +132,17 @@ const AppContent = () => {
         <Route path="/" element={<Home />} />
         <Route path="/s/:query" element={<Search />} />
         <Route path="/product/:id" element={<Product />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-        <Route path="/orders" element={<Orders />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/account/preferences" element={<Account />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/cart" element={<AuthGuard><Cart /></AuthGuard>} />
+        <Route path="/checkout" element={<AuthGuard><Checkout /></AuthGuard>} />
+        <Route path="/order-confirmation/:orderId" element={<AuthGuard><OrderConfirmation /></AuthGuard>} />
+        <Route path="/orders" element={<AuthGuard><Orders /></AuthGuard>} />
+        <Route path="/account" element={<AuthGuard><Account /></AuthGuard>} />
+        <Route path="/metrics" element={<AuthGuard><AccessibilityMetrics /></AuthGuard>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <DemoMode />
       <Footer />
       <AssistantPanel 
         isOpen={isAssistantOpen} 
