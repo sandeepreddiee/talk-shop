@@ -1,11 +1,30 @@
 version: '3.8'
 
 services:
-  frontend:
+  accessshop:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID}
+    image: accessshop:latest
+    container_name: accessshop-app
     ports:
       - "8080:80"
-    container_name: accessshop-frontend
     restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - accessshop-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  accessshop-network:
+    driver: bridge
