@@ -1,13 +1,44 @@
-import { productService } from '@/services/productService';
+import { useEffect, useState } from 'react';
+import { productService } from '@/services/database/productService';
 import { ProductCard } from '@/components/ProductCard';
 import { speechService } from '@/services/speechService';
+import { Product } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
-  const products = productService.getAllProducts();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      const data = await productService.getAllProducts();
+      setProducts(data);
+      setLoading(false);
+    };
+    loadProducts();
+  }, []);
 
   const handleQuickListen = async (product: any) => {
     await speechService.speak(`${product.name}. Price: $${product.price}. Rating: ${product.rating} stars.`);
   };
+
+  if (loading) {
+    return (
+      <main id="main-content" className="container py-8 px-4">
+        <section className="mb-12">
+          <Skeleton className="h-48 w-full rounded-lg" />
+        </section>
+        <section>
+          <Skeleton className="h-8 w-64 mb-6" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="h-96 w-full" />
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main id="main-content" className="container py-8 px-4">

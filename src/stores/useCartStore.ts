@@ -1,54 +1,51 @@
 import { create } from 'zustand';
-import { cartService } from '@/services/cartService';
+import { cartService } from '@/services/database/cartService';
 import { CartItem } from '@/types';
 
 interface CartState {
   items: CartItem[];
   itemCount: number;
-  addItem: (productId: string, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
-  clearCart: () => void;
-  loadCart: () => void;
+  addItem: (productId: string, quantity?: number) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  removeItem: (productId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
+  loadCart: () => Promise<void>;
+  refreshCart: () => Promise<void>;
 }
 
-export const useCartStore = create<CartState>((set) => ({
-  items: cartService.getCart(),
-  itemCount: cartService.getItemCount(),
+export const useCartStore = create<CartState>((set, get) => ({
+  items: [],
+  itemCount: 0,
 
-  addItem: (productId: string, quantity?: number) => {
-    cartService.addToCart(productId, quantity);
-    set({
-      items: cartService.getCart(),
-      itemCount: cartService.getItemCount()
-    });
+  addItem: async (productId: string, quantity?: number) => {
+    await cartService.addToCart(productId, quantity);
+    await get().refreshCart();
   },
 
-  updateQuantity: (productId: string, quantity: number) => {
-    cartService.updateQuantity(productId, quantity);
-    set({
-      items: cartService.getCart(),
-      itemCount: cartService.getItemCount()
-    });
+  updateQuantity: async (productId: string, quantity: number) => {
+    await cartService.updateQuantity(productId, quantity);
+    await get().refreshCart();
   },
 
-  removeItem: (productId: string) => {
-    cartService.removeFromCart(productId);
-    set({
-      items: cartService.getCart(),
-      itemCount: cartService.getItemCount()
-    });
+  removeItem: async (productId: string) => {
+    await cartService.removeFromCart(productId);
+    await get().refreshCart();
   },
 
-  clearCart: () => {
-    cartService.clearCart();
+  clearCart: async () => {
+    await cartService.clearCart();
     set({ items: [], itemCount: 0 });
   },
 
-  loadCart: () => {
-    set({
-      items: cartService.getCart(),
-      itemCount: cartService.getItemCount()
-    });
+  loadCart: async () => {
+    const items = await cartService.getCart();
+    const itemCount = await cartService.getItemCount();
+    set({ items, itemCount });
+  },
+
+  refreshCart: async () => {
+    const items = await cartService.getCart();
+    const itemCount = await cartService.getItemCount();
+    set({ items, itemCount });
   }
 }));
