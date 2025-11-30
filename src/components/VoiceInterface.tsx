@@ -15,19 +15,33 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
   const chatRef = useRef<RealtimeChat | null>(null);
 
   const handleMessage = (event: any) => {
-    console.log('Received message:', event.type);
+    console.log('📩 Received message:', event.type, event);
     
-    if (event.type === 'response.audio.delta') {
+    if (event.type === 'session.created') {
+      console.log('✅ Session created successfully');
+      toast({
+        title: "Connected",
+        description: "AI is ready. Start speaking!",
+      });
+    } else if (event.type === 'response.audio.delta') {
       onSpeakingChange(true);
     } else if (event.type === 'response.audio.done') {
       onSpeakingChange(false);
+    } else if (event.type === 'response.done') {
+      console.log('✅ Response completed');
     } else if (event.type === 'error') {
-      console.error('Realtime API error:', event);
+      console.error('❌ Realtime API error:', event);
       toast({
-        title: "Error",
-        description: event.error?.message || 'An error occurred',
+        title: "AI Error",
+        description: event.error?.message || 'An error occurred with the AI',
         variant: "destructive",
       });
+    } else if (event.type === 'input_audio_buffer.speech_started') {
+      console.log('🎤 User started speaking');
+    } else if (event.type === 'input_audio_buffer.speech_stopped') {
+      console.log('🎤 User stopped speaking');
+    } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
+      console.log('📝 Transcription:', event.transcript);
     }
   };
 
@@ -41,10 +55,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       await chatRef.current.init();
       setIsConnected(true);
       
-      toast({
-        title: "Connected",
-        description: "Voice assistant is ready. Start speaking naturally!",
-      });
+      console.log('🎉 Voice assistant fully initialized and ready');
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
