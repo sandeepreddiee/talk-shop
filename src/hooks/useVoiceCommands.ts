@@ -5,7 +5,7 @@ import { voiceCommandParser } from '@/services/voiceCommands';
 import { useVoiceStore } from '@/stores/useVoiceStore';
 import { useCartStore } from '@/stores/useCartStore';
 import { usePreferenceStore } from '@/stores/usePreferenceStore';
-import { useAuthStore } from '@/stores/useAuthStore';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowHelp: (show: boolean) => void) => {
@@ -14,7 +14,6 @@ export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowH
   const { setAssistantOpen } = useVoiceStore();
   const { addItem } = useCartStore();
   const { updatePreference, textSize } = usePreferenceStore();
-  const { logout } = useAuthStore();
 
   const executeCommand = useCallback(async (command: any) => {
     const intent = command.intent;
@@ -152,7 +151,7 @@ export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowH
         break;
 
       case 'SIGN_OUT':
-        logout();
+        await supabase.auth.signOut();
         navigate('/login');
         toast.success('Signed out');
         await speechService.speak('You have been signed out');
@@ -161,7 +160,7 @@ export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowH
       default:
         await speechService.speak('Command not recognized. Say what can I say for help');
     }
-  }, [navigate, location, setLiveMessage, setShowHelp, addItem, updatePreference, textSize, logout, setAssistantOpen]);
+  }, [navigate, location, setLiveMessage, setShowHelp, addItem, updatePreference, textSize, setAssistantOpen]);
 
   const getPageDescription = () => {
     const path = location.pathname;

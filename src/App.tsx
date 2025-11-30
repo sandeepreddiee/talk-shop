@@ -11,8 +11,11 @@ import { HelpOverlay } from "./components/HelpOverlay";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { LiveRegion } from "./components/LiveRegion";
 import { OnboardingModal } from "./components/OnboardingModal";
+import { KeyboardShortcutsPanel } from "./components/KeyboardShortcutsPanel";
 import { useVoiceStore } from "./stores/useVoiceStore";
 import { useCartStore } from "./stores/useCartStore";
+import { useWishlistStore } from "./stores/useWishlistStore";
+import { useAuthStore } from "./stores/useAuthStore";
 import { speechService } from "./services/speechService";
 import { voiceCommandParser } from "./services/voiceCommands";
 import { shortcutManager } from "./services/shortcutManager";
@@ -29,12 +32,14 @@ import Orders from "./pages/Orders";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Account from "./pages/Account";
+import Wishlist from "./pages/Wishlist";
 import AccessibilityMetrics from "./pages/AccessibilityMetrics";
 import NotFound from "./pages/NotFound";
 import { AuthGuard } from "./components/AuthGuard";
 import { DemoMode } from "./components/DemoMode";
 import { useRealtimeOrders } from "./hooks/useRealtimeOrders";
 import { useRealtimeCart } from "./hooks/useRealtimeCart";
+import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -42,18 +47,46 @@ const AppContent = () => {
   const location = useLocation();
   const { isListening, setListening, isAssistantOpen, setAssistantOpen } = useVoiceStore();
   const itemCount = useCartStore((state) => state.itemCount);
+  const loadCart = useCartStore(state => state.loadCart);
+  const loadWishlist = useWishlistStore(state => state.loadWishlist);
+  const { user, setUser, setSession } = useAuthStore();
   const [liveMessage, setLiveMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   
   const { executeCommand } = useVoiceCommands(setLiveMessage, setShowHelp);
-  const loadCart = useCartStore(state => state.loadCart);
   usePreferenceEffects();
   useRealtimeOrders();
   useRealtimeCart();
 
+  // Initialize auth session
   useEffect(() => {
-    loadCart();
+    // Set up auth listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      // Load user data when authenticated
+      if (session?.user) {
+        setTimeout(() => {
+          loadCart();
+          loadWishlist();
+        }, 0);
+      }
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadCart();
+        loadWishlist();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -111,11 +144,23 @@ const AppContent = () => {
       description: 'Force toggle voice input'
     });
 
-    shortcutManager.register({
-      key: '?',
-      handler: () => setShowHelp(true),
-      description: 'Show help'
-    });
+      shortcutManager.register({
+        key: 'k',
+        ctrl: true,
+        handler: () => {
+          const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
+          searchInput?.focus();
+        },
+        description: 'Focus search'
+      });
+
+      shortcutManager.register({
+        key: 's',
+        ctrl: true,
+        shift: true,
+        handler: () => setShowShortcuts(!showShortcuts),
+        description: 'Toggle shortcuts panel'
+      });
 
     return () => {
       shortcutManager.destroy();
@@ -139,10 +184,12 @@ const AppContent = () => {
         <Route path="/order-confirmation/:orderId" element={<AuthGuard><OrderConfirmation /></AuthGuard>} />
         <Route path="/orders" element={<AuthGuard><Orders /></AuthGuard>} />
         <Route path="/account" element={<AuthGuard><Account /></AuthGuard>} />
+        <Route path="/wishlist" element={<AuthGuard><Wishlist /></AuthGuard>} />
         <Route path="/metrics" element={<AuthGuard><AccessibilityMetrics /></AuthGuard>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <DemoMode />
+      {showShortcuts && <KeyboardShortcutsPanel />}
       <Footer />
       <AssistantPanel 
         isOpen={isAssistantOpen} 
