@@ -88,22 +88,48 @@ export class RealtimeChat {
       // Create peer connection
       this.pc = new RTCPeerConnection();
 
+      // Set up connection state monitoring
+      this.pc.onconnectionstatechange = () => {
+        console.log('🔌 Connection state:', this.pc?.connectionState);
+        if (this.pc?.connectionState === 'failed' || this.pc?.connectionState === 'disconnected') {
+          console.error('WebRTC connection failed or disconnected');
+          this.onMessage({ type: 'error', error: { message: 'Connection lost. Please try again.' } });
+        }
+      };
+
+      this.pc.oniceconnectionstatechange = () => {
+        console.log('🧊 ICE connection state:', this.pc?.iceConnectionState);
+      };
+
       // Set up remote audio
       this.pc.ontrack = e => {
-        console.log('Received audio track');
+        console.log('🎵 Received audio track');
         this.audioEl.srcObject = e.streams[0];
       };
 
       // Add local audio track
       const ms = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.pc.addTrack(ms.getTracks()[0]);
-      console.log('Added local audio track');
+      console.log('🎤 Added local audio track');
 
       // Set up data channel
       this.dc = this.pc.createDataChannel("oai-events");
+      
+      this.dc.onopen = () => {
+        console.log('📡 Data channel opened - ready to communicate');
+      };
+      
+      this.dc.onclose = () => {
+        console.log('📡 Data channel closed');
+      };
+      
+      this.dc.onerror = (error) => {
+        console.error('📡 Data channel error:', error);
+      };
+      
       this.dc.addEventListener("message", (e) => {
         const event = JSON.parse(e.data);
-        console.log("Received event:", event.type);
+        console.log("📨 Received event:", event.type, event);
         this.onMessage(event);
       });
 
@@ -115,6 +141,7 @@ export class RealtimeChat {
       // Connect to OpenAI's Realtime API
       const baseUrl = "https://api.openai.com/v1/realtime";
       const model = "gpt-4o-realtime-preview-2024-12-17";
+      console.log('🌐 Connecting to OpenAI Realtime API...');
       const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
         method: "POST",
         body: offer.sdp,
@@ -125,8 +152,12 @@ export class RealtimeChat {
       });
 
       if (!sdpResponse.ok) {
-        throw new Error(`Failed to connect: ${await sdpResponse.text()}`);
+        const errorText = await sdpResponse.text();
+        console.error('❌ Failed to connect to OpenAI:', sdpResponse.status, errorText);
+        throw new Error(`Failed to connect to OpenAI (${sdpResponse.status}): ${errorText}`);
       }
+      
+      console.log('✅ Connected to OpenAI Realtime API');
 
       const answer = {
         type: "answer" as RTCSdpType,
