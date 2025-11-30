@@ -21,15 +21,15 @@ export const HelpOverlay = ({ isOpen, onClose }: HelpOverlayProps) => {
         <DialogHeader>
           <DialogTitle>Voice Commands and Keyboard Shortcuts</DialogTitle>
           <DialogDescription>
-            AccessShop offers two ways to use voice: Quick Commands (Ctrl+V) for specific actions, and Natural AI Chat (floating mic button) for conversations
+            AccessShop offers two ways to use voice: Quick Commands (Ctrl+V) for specific actions, and Natural Conversations (floating mic button) for interactive assistance
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           <section className="border-l-4 border-primary pl-4 bg-primary/5 p-3 rounded-r">
-            <h3 className="font-semibold text-lg mb-2">🎤 Natural AI Chat (Recommended)</h3>
+            <h3 className="font-semibold text-lg mb-2">🎤 Natural Conversations (Recommended)</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              Click the floating microphone button (bottom-right corner) for natural conversations with the AI assistant. Ask questions, get recommendations, or chat naturally about products!
+              Click the floating microphone button (bottom-right corner) for natural conversations with the shopping assistant. Ask questions, get recommendations, or chat naturally about products!
             </p>
           </section>
 

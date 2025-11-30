@@ -30,7 +30,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       speechService.stopSpeaking();
       toast({
         title: "Connected",
-        description: "AI is ready. Start speaking!",
+        description: "Voice assistant is ready. Start speaking!",
       });
     } else if (event.type === 'response.audio.delta') {
       // Stop screen reader when AI starts speaking
@@ -43,8 +43,8 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     } else if (event.type === 'error') {
       console.error('❌ Realtime API error:', event);
       toast({
-        title: "AI Error",
-        description: event.error?.message || 'An error occurred with the AI',
+        title: "Assistant Error",
+        description: event.error?.message || 'An error occurred with the voice assistant',
         variant: "destructive",
       });
     } else if (event.type === 'input_audio_buffer.speech_started') {
@@ -263,7 +263,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
             <Mic className="h-7 w-7" />
           </Button>
           <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
-            Natural AI Chat
+            Natural Conversation
           </span>
         </>
       ) : (

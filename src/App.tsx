@@ -135,8 +135,8 @@ const AppContent = () => {
               setLiveMessage(`Executing: ${finalText}`);
               await executeCommand(command);
             } else {
-              setLiveMessage(`Not recognized: "${finalText}". Say "what can I say" for help, or use the AI assistant button for natural conversations.`);
-              await speechService.speak(`I didn't recognize "${finalText}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the AI assistant.`);
+              setLiveMessage(`Not recognized: "${finalText}". Say "what can I say" for help, or use the voice assistant button for natural conversations.`);
+              await speechService.speak(`I didn't recognize "${finalText}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the shopping assistant.`);
             }
           },
           () => {
