@@ -47,7 +47,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     } else if (event.type === 'input_audio_buffer.speech_stopped') {
       console.log('🎤 User stopped speaking');
     } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
-      const transcript = event.transcript?.toLowerCase() || '';
+      const transcript = (event.transcript || event.transcription || '').toLowerCase();
       console.log('📝 Transcription:', transcript);
       
       // Check if user wants to stop the conversation
@@ -55,9 +55,17 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
           transcript.includes('stop conversation') ||
           transcript.includes('end conversation') ||
           transcript.includes('disconnect') ||
+          transcript.includes('stop') ||
           transcript.includes('goodbye') ||
           transcript.includes('bye')) {
         console.log('🛑 User requested to stop conversation');
+        endConversation();
+      }
+    } else if (event.type === 'response.audio_transcript.delta') {
+      // Also check AI's transcription of user speech
+      const text = (event.delta || '').toLowerCase();
+      if (text.includes('stop listening') || text.includes('stop conversation')) {
+        console.log('🛑 User requested to stop (from delta)');
         endConversation();
       }
     }
@@ -209,12 +217,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
             size="lg"
             variant="destructive"
             className="rounded-full h-16 w-16 shadow-lg animate-pulse"
-            aria-label="End voice conversation"
+            aria-label="End voice conversation - Click to stop"
+            title="Click to stop listening"
           >
             <MicOff className="h-7 w-7" />
           </Button>
           <span className="text-xs text-destructive bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
-            Listening...
+            Click to stop or say "stop listening"
           </span>
         </>
       )}
