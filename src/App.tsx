@@ -97,6 +97,16 @@ const AppContent = () => {
     }
   }, []);
 
+  // Stop speech on any click
+  useEffect(() => {
+    const handleClick = () => {
+      speechService.stopSpeaking();
+    };
+
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
+
   const handleOnboardingComplete = () => {
     localStorage.setItem('hasSeenOnboarding', 'true');
     setShowOnboarding(false);
