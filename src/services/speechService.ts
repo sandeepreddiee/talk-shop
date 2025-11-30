@@ -42,6 +42,15 @@ class SpeechService {
         return;
       }
 
+      // Stop any existing recognition first
+      if (this.isListening) {
+        try {
+          this.recognition.stop();
+        } catch (e) {
+          // Ignore errors when stopping
+        }
+      }
+
       this.isListening = true;
 
       this.recognition.onresult = (event: any) => {
