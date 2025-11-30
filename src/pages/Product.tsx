@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { productService } from '@/services/productService';
+import { useEffect, useState } from 'react';
+import { productService } from '@/services/database/productService';
 import { Button } from '@/components/ui/button';
 import { RatingStars } from '@/components/RatingStars';
 import { useCartStore } from '@/stores/useCartStore';
@@ -9,43 +9,115 @@ import { speechService } from '@/services/speechService';
 import { AssistantPanel } from '@/components/AssistantPanel';
 import { toast } from 'sonner';
 import { ShoppingCart, Zap, MessageCircle } from 'lucide-react';
+import { Product } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { activityService } from '@/services/activityService';
+import { playSuccessSound, playErrorSound } from '@/components/AudioFeedback';
 
-export default function Product() {
+export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = productService.getProductById(id || '');
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const addItem = useCartStore((state) => state.addItem);
   const { isAssistantOpen, setAssistantOpen } = useVoiceStore();
 
   useEffect(() => {
-    if (product) {
-      speechService.speak(`Product page. ${product.name}. Price: $${product.price}. Rating: ${product.rating} stars. Say add to cart, buy now, or ask assistant for help.`);
-    }
-  }, [product]);
+    const loadProduct = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const data = await productService.getProductById(id);
+        setProduct(data);
+        
+        if (data) {
+          speechService.speak(`Product page. ${data.name}. Price: $${data.price}. Rating: ${data.rating} stars. Say add to cart, buy now, or ask assistant for help.`);
+          await activityService.logActivity('view_product', { productId: id, productName: data.name });
+        }
+      } catch (error) {
+        console.error('Error loading product:', error);
+        toast.error('Failed to load product');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!product) {
-    return <div className="container py-8">Product not found</div>;
-  }
+    loadProduct();
+  }, [id]);
 
   const handleAddToCart = async () => {
-    addItem(product.id);
-    toast.success('Added to cart');
-    await speechService.speak('Added to cart');
+    if (!product) return;
+    
+    try {
+      await addItem(product.id);
+      toast.success('Added to cart');
+      await speechService.speak('Added to cart');
+      playSuccessSound();
+      await activityService.logActivity('add_to_cart', { productId: product.id, productName: product.name });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add to cart');
+      playErrorSound();
+    }
   };
 
   const handleBuyNow = async () => {
-    addItem(product.id);
-    await speechService.speak('Taking you to checkout');
-    navigate('/checkout');
+    if (!product) return;
+    
+    try {
+      await addItem(product.id);
+      await speechService.speak('Taking you to checkout');
+      await activityService.logActivity('buy_now', { productId: product.id, productName: product.name });
+      navigate('/checkout');
+    } catch (error) {
+      console.error('Error processing buy now:', error);
+      toast.error('Failed to process purchase');
+      playErrorSound();
+    }
   };
 
   const handleAskAssistant = () => {
     setAssistantOpen(true);
+    activityService.logActivity('open_assistant', { context: 'product', productId: product?.id });
   };
 
   const handleListenDescription = async () => {
+    if (!product) return;
     await speechService.speak(`${product.name}. Price: ${product.price} dollars. ${product.description}. Key features: ${product.features.join('. ')}`);
+    await activityService.logActivity('voice_product_description', { productId: product.id });
   };
+
+  if (loading) {
+    return (
+      <main id="main-content" className="container py-8 px-4">
+        <div className="grid md:grid-cols-2 gap-8">
+          <Skeleton className="h-96 w-full" />
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-12 w-32" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!product) {
+    return (
+      <main id="main-content" className="container py-8 px-4">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+          <p className="text-muted-foreground mb-6">The product you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/')}>Back to Home</Button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main id="main-content" className="container py-8 px-4">
@@ -55,6 +127,9 @@ export default function Product() {
             src={product.image} 
             alt={product.name} 
             className="w-full rounded-lg"
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';
+            }}
           />
         </div>
         <div className="space-y-4">
@@ -66,6 +141,11 @@ export default function Product() {
           {product.originalPrice && (
             <div className="text-lg text-muted-foreground line-through">
               Was: ${product.originalPrice}
+            </div>
+          )}
+          {!product.inStock && (
+            <div className="text-destructive font-semibold" role="alert">
+              Out of Stock
             </div>
           )}
           <p className="text-muted-foreground">{product.description}</p>
@@ -100,11 +180,24 @@ export default function Product() {
           </div>
           
           <div className="flex gap-4">
-            <Button onClick={handleAddToCart} size="lg" className="flex-1">
+            <Button 
+              onClick={handleAddToCart} 
+              size="lg" 
+              className="flex-1"
+              disabled={!product.inStock}
+              aria-label={product.inStock ? "Add to cart" : "Out of stock"}
+            >
               <ShoppingCart className="mr-2 h-5 w-5" />
-              Add to Cart
+              {product.inStock ? 'Add to Cart' : 'Out of Stock'}
             </Button>
-            <Button onClick={handleBuyNow} size="lg" variant="secondary" className="flex-1">
+            <Button 
+              onClick={handleBuyNow} 
+              size="lg" 
+              variant="secondary" 
+              className="flex-1"
+              disabled={!product.inStock}
+              aria-label={product.inStock ? "Buy now" : "Out of stock"}
+            >
               <Zap className="mr-2 h-5 w-5" />
               Buy Now
             </Button>
