@@ -57,9 +57,15 @@ export default function ProductPage() {
       await speechService.speak('Added to cart');
       playSuccessSound();
       await activityService.logActivity('add_to_cart', { productId: product.id, productName: product.name });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding to cart:', error);
-      toast.error('Failed to add to cart');
+      if (error?.message === 'User not authenticated') {
+        toast.error('Please log in to add items to cart');
+        await speechService.speak('Please log in to add items to your cart');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        toast.error('Failed to add to cart');
+      }
       playErrorSound();
     }
   };
@@ -72,9 +78,15 @@ export default function ProductPage() {
       await speechService.speak('Taking you to checkout');
       await activityService.logActivity('buy_now', { productId: product.id, productName: product.name });
       navigate('/checkout');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing buy now:', error);
-      toast.error('Failed to process purchase');
+      if (error?.message === 'User not authenticated') {
+        toast.error('Please log in to make a purchase');
+        await speechService.speak('Please log in to make a purchase');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        toast.error('Failed to process purchase');
+      }
       playErrorSound();
     }
   };
@@ -216,7 +228,18 @@ export default function ProductPage() {
         isOpen={isAssistantOpen} 
         onClose={() => setAssistantOpen(false)}
         context={{
-          product,
+          product: product ? {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            rating: product.rating,
+            reviewCount: product.reviewCount,
+            category: product.category,
+            description: product.description,
+            features: product.features,
+            inStock: product.inStock,
+            image: product.image
+          } : undefined,
           page: 'product'
         }}
       />
