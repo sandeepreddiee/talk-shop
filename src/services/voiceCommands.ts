@@ -94,6 +94,11 @@ const commandPatterns: CommandPattern[] = [
     intent: 'DECREASE_TEXT_SIZE'
   },
   {
+    patterns: [/login with pin (\d{6})|pin login (\d{6})|use pin (\d{6})/i],
+    intent: 'PIN_LOGIN',
+    extractParams: (match) => ({ pin: match[1] || match[2] || match[3] })
+  },
+  {
     patterns: [/sign out|log out|logout/i],
     intent: 'SIGN_OUT'
   }
