@@ -176,47 +176,59 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          deal_expires_at: string | null
           description: string | null
           features: string[] | null
           id: string
           image: string | null
           in_stock: boolean | null
+          is_featured: boolean | null
           name: string
+          original_price: number | null
           price: number
           rating: number | null
           reviews: number | null
           stock_quantity: number | null
           updated_at: string | null
+          view_count: number | null
         }
         Insert: {
           category?: string | null
           created_at?: string | null
+          deal_expires_at?: string | null
           description?: string | null
           features?: string[] | null
           id?: string
           image?: string | null
           in_stock?: boolean | null
+          is_featured?: boolean | null
           name: string
+          original_price?: number | null
           price: number
           rating?: number | null
           reviews?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
+          view_count?: number | null
         }
         Update: {
           category?: string | null
           created_at?: string | null
+          deal_expires_at?: string | null
           description?: string | null
           features?: string[] | null
           id?: string
           image?: string | null
           in_stock?: boolean | null
+          is_featured?: boolean | null
           name?: string
+          original_price?: number | null
           price?: number
           rating?: number | null
           reviews?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -246,6 +258,53 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          content: string
+          created_at: string | null
+          helpful_count: number | null
+          id: string
+          product_id: string
+          rating: number
+          title: string
+          updated_at: string | null
+          user_id: string
+          verified_purchase: boolean | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          helpful_count?: number | null
+          id?: string
+          product_id: string
+          rating: number
+          title: string
+          updated_at?: string | null
+          user_id: string
+          verified_purchase?: boolean | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          helpful_count?: number | null
+          id?: string
+          product_id?: string
+          rating?: number
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          verified_purchase?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wishlist: {
         Row: {

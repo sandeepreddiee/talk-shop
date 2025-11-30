@@ -45,7 +45,7 @@ const commandPatterns: CommandPattern[] = [
     intent: 'READ_PRODUCT'
   },
   {
-    patterns: [/add to cart|add (?:this )?(?:to )?(?:my )?cart|add (?:this )?item|put (?:this )?in (?:my )?cart/i],
+    patterns: [/add to cart|add (?:this )?(?:to )?(?:my )?cart|add (?:this )?item|put (?:this )?in (?:my )?cart|add (?:this )?product/i],
     intent: 'ADD_TO_CART'
   },
   {
