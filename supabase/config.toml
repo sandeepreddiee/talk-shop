@@ -1,1 +1,7 @@
 project_id = "btrmthycrvfiumtsgavv"
+
+[functions.voice-assistant]
+verify_jwt = false
+
+[functions.pin-login]
+verify_jwt = false

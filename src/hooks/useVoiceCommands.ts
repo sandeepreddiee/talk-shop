@@ -157,6 +157,40 @@ export const useVoiceCommands = (setLiveMessage: (msg: string) => void, setShowH
         await speechService.speak('You have been signed out');
         break;
 
+      case 'PIN_LOGIN':
+        if (command.parameters?.pin) {
+          try {
+            const { data, error } = await supabase.functions.invoke('pin-login', {
+              body: { pin: command.parameters.pin }
+            });
+
+            if (error) throw error;
+
+            if (data.success && data.session) {
+              const url = new URL(data.session.properties.action_link);
+              const token = url.searchParams.get('token');
+              const type = url.searchParams.get('type');
+
+              if (token && type) {
+                const { error: verifyError } = await supabase.auth.verifyOtp({
+                  token_hash: token,
+                  type: type as any
+                });
+
+                if (verifyError) throw verifyError;
+
+                toast.success('Signed in successfully with PIN!');
+                await speechService.speak('Signed in successfully. Welcome back!');
+                navigate('/');
+              }
+            }
+          } catch (error: any) {
+            toast.error('Invalid PIN');
+            await speechService.speak('Invalid PIN. Please try again.');
+          }
+        }
+        break;
+
       default:
         await speechService.speak('Command not recognized. Say what can I say for help');
     }
