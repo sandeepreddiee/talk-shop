@@ -44,20 +44,6 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
     }
   }, [isOpen, context]);
 
-  // Add keyboard shortcut for Ctrl+V
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
-        e.preventDefault();
-        if (!isVoiceInput) startContinuousVoiceInput();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isVoiceInput]);
 
   const handleSubmit = async (query: string) => {
     if (!query.trim() || isProcessing) return;

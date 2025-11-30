@@ -119,21 +119,31 @@ const AppContent = () => {
     if (isListening) {
       speechService.stopListening();
       setListening(false);
+      setLiveMessage('Voice input stopped');
     } else {
       try {
         setListening(true);
-        const transcript = await speechService.startListening();
-        setListening(false);
+        setLiveMessage('Listening... Say "stop listening" to end');
         
-        const command = voiceCommandParser.parse(transcript);
-        if (command) {
-          await executeCommand(command);
-        } else {
-          setLiveMessage('Command not recognized');
-          await speechService.speak('Command not recognized. Say what can I say for help');
-        }
+        await speechService.startContinuousListening(
+          async (finalText) => {
+            const command = voiceCommandParser.parse(finalText);
+            if (command) {
+              await executeCommand(command);
+            } else {
+              setLiveMessage('Command not recognized');
+              await speechService.speak('Command not recognized. Say what can I say for help');
+            }
+          },
+          () => {
+            setListening(false);
+            setLiveMessage('Voice input stopped');
+          }
+        );
       } catch (error) {
+        console.error('Voice toggle error:', error);
         setListening(false);
+        setLiveMessage('Voice input error');
       }
     }
   };
