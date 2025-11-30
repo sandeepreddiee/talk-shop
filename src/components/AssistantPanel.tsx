@@ -37,12 +37,27 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
       const greeting: AssistantMessage = {
         id: 'greeting',
         role: 'assistant',
-        content: `Hi! I can help you with this product. Ask me about the price, features, reviews, or anything else!`,
+        content: `Hi! I can help you with ${context.product.name}. Ask me about the price, features, reviews, or anything else! Press Ctrl+V to use voice input.`,
         timestamp: new Date()
       };
       setMessages([greeting]);
     }
   }, [isOpen, context]);
+
+  // Add keyboard shortcut for Ctrl+V
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isProcessing && !isVoiceInput) {
+        e.preventDefault();
+        handleVoiceInput();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isProcessing, isVoiceInput]);
 
   const handleSubmit = async (query: string) => {
     if (!query.trim() || isProcessing) return;
@@ -174,7 +189,7 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSubmit(input)}
-            placeholder="Ask me anything..."
+            placeholder="Ask me anything... (Ctrl+V for voice)"
             disabled={isProcessing || isVoiceInput}
             aria-label="Message input"
           />
@@ -192,6 +207,9 @@ export const AssistantPanel = ({ isOpen, onClose, context }: AssistantPanelProps
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground text-center">
+          Press Ctrl+V or click the mic to use voice input
+        </p>
       </div>
     </aside>
   );
