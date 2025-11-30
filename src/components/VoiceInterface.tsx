@@ -157,6 +157,52 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
           category: product.category
         }
       };
+    },
+    
+    update_shipping_address: async (args: { address?: string; city?: string; zipCode?: string }) => {
+      // Check if on checkout page
+      if (!location.pathname.includes('/checkout')) {
+        return { success: false, message: "Not on checkout page. Navigate to checkout first." };
+      }
+      
+      // Import the store dynamically to update it
+      const { useCheckoutStore } = await import('@/stores/useCheckoutStore');
+      const store = useCheckoutStore.getState();
+      
+      if (args.address) store.setAddress(args.address);
+      if (args.city) store.setCity(args.city);
+      if (args.zipCode) store.setZipCode(args.zipCode);
+      
+      const fields = [];
+      if (args.address) fields.push('address');
+      if (args.city) fields.push('city');
+      if (args.zipCode) fields.push('ZIP code');
+      
+      toast({
+        title: "Address updated",
+        description: `Updated ${fields.join(', ')}`,
+      });
+      
+      return { 
+        success: true, 
+        message: `Updated ${fields.join(', ')}` 
+      };
+    },
+    
+    place_order: async () => {
+      // Check if on checkout page
+      if (!location.pathname.includes('/checkout')) {
+        return { success: false, message: "Not on checkout page. Navigate to checkout first." };
+      }
+      
+      // Trigger form submission by dispatching event
+      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+      if (submitButton) {
+        submitButton.click();
+        return { success: true, message: "Placing your order..." };
+      }
+      
+      return { success: false, message: "Could not find order form" };
     }
   });
 
