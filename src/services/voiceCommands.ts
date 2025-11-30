@@ -24,7 +24,7 @@ const commandPatterns: CommandPattern[] = [
     intent: 'NAVIGATE_ACCOUNT'
   },
   {
-    patterns: [/open assistant|ask assistant|talk to assistant|help me shop|shopping help|assistant|ai assistant|voice assistant|talk to ai/i],
+    patterns: [/open assistant|ask assistant|talk to assistant|help me shop|shopping help|assistant|voice assistant/i],
     intent: 'OPEN_ASSISTANT'
   },
   {
