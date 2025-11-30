@@ -28,7 +28,59 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: "alloy",
-        instructions: "You are a helpful shopping assistant for AccessShop, a voice-first accessible e-commerce platform. Help users discover products, answer questions about items, and provide shopping recommendations. Be friendly, concise, and helpful. When users ask about products, describe features clearly and mention prices when relevant."
+        instructions: `You are a helpful shopping assistant for AccessShop, a voice-first e-commerce platform designed for blind users. 
+        
+You can help users:
+- Learn about products (features, price, reviews)
+- Add products to their cart
+- Navigate to different pages (cart, checkout, home, search)
+- Answer shopping questions
+- Provide recommendations
+
+When users ask you to perform actions, use the available tools to help them. Always confirm actions after completing them.
+
+Be conversational, helpful, and concise. Remember this is a voice interface, so keep responses brief and natural.`,
+        tools: [
+          {
+            type: "function",
+            name: "add_to_cart",
+            description: "Add the current product to the user's shopping cart",
+            parameters: {
+              type: "object",
+              properties: {
+                quantity: {
+                  type: "number",
+                  description: "Number of items to add (default: 1)"
+                }
+              }
+            }
+          },
+          {
+            type: "function", 
+            name: "navigate",
+            description: "Navigate to a different page in the application",
+            parameters: {
+              type: "object",
+              properties: {
+                page: {
+                  type: "string",
+                  enum: ["home", "cart", "checkout", "search", "wishlist", "orders"],
+                  description: "The page to navigate to"
+                }
+              },
+              required: ["page"]
+            }
+          },
+          {
+            type: "function",
+            name: "get_product_info",
+            description: "Get detailed information about the current product being viewed",
+            parameters: {
+              type: "object",
+              properties: {}
+            }
+          }
+        ]
       }),
     });
 
