@@ -50,15 +50,18 @@ Available voice commands you can mention:
     // Add context-specific information
     if (context?.product) {
       const p = context.product;
+      console.log('Product context received:', p);
+      
       systemPrompt += `\n\nCurrent product context:
 - Name: ${p.name}
 - Price: $${p.price}
-- Rating: ${p.rating} stars (${p.reviewCount} reviews)
-- Category: ${p.category}
-- In stock: ${p.inStock ? 'Yes' : 'No'}
-- Prime: ${p.prime ? 'Yes' : 'No'}
-- Description: ${p.description}
-- Features: ${p.features.join(', ')}`;
+- Rating: ${p.rating || 'N/A'} stars (${p.reviewCount || p.reviews || 0} reviews)
+- Category: ${p.category || 'N/A'}
+- In stock: ${p.inStock !== false && p.in_stock !== false ? 'Yes' : 'No'}
+- Description: ${p.description || 'No description available'}
+- Features: ${p.features && Array.isArray(p.features) ? p.features.join(', ') : 'No features listed'}
+
+IMPORTANT: The user is viewing ${p.name}. Always refer to this specific product in your responses. DO NOT mention any other products.`;
     }
 
     if (context?.page) {
