@@ -129,12 +129,14 @@ const AppContent = () => {
         
         await speechService.startContinuousListening(
           async (finalText) => {
+            console.log('Voice command received:', finalText);
             const command = voiceCommandParser.parse(finalText);
             if (command) {
+              setLiveMessage(`Executing: ${finalText}`);
               await executeCommand(command);
             } else {
-              setLiveMessage('Command not recognized');
-              await speechService.speak('Command not recognized. Say what can I say for help');
+              setLiveMessage(`Not recognized: "${finalText}". Say "what can I say" for help, or use the AI assistant button for natural conversations.`);
+              await speechService.speak(`I didn't recognize "${finalText}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the AI assistant.`);
             }
           },
           () => {

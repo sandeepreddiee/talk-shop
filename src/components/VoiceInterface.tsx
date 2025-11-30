@@ -75,27 +75,37 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
   }, []);
 
   return (
-    <div className="fixed bottom-8 right-8 z-50">
+    <div className="fixed bottom-8 right-8 z-50 flex flex-col items-center gap-2">
       {!isConnected ? (
-        <Button 
-          onClick={startConversation}
-          disabled={isLoading}
-          size="lg"
-          className="rounded-full h-16 w-16 shadow-lg bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-          aria-label="Start voice conversation"
-        >
-          <Mic className="h-7 w-7" />
-        </Button>
+        <>
+          <Button 
+            onClick={startConversation}
+            disabled={isLoading}
+            size="lg"
+            className="rounded-full h-16 w-16 shadow-lg bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            aria-label="Start voice conversation"
+          >
+            <Mic className="h-7 w-7" />
+          </Button>
+          <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
+            Natural AI Chat
+          </span>
+        </>
       ) : (
-        <Button 
-          onClick={endConversation}
-          size="lg"
-          variant="destructive"
-          className="rounded-full h-16 w-16 shadow-lg animate-pulse"
-          aria-label="End voice conversation"
-        >
-          <MicOff className="h-7 w-7" />
-        </Button>
+        <>
+          <Button 
+            onClick={endConversation}
+            size="lg"
+            variant="destructive"
+            className="rounded-full h-16 w-16 shadow-lg animate-pulse"
+            aria-label="End voice conversation"
+          >
+            <MicOff className="h-7 w-7" />
+          </Button>
+          <span className="text-xs text-destructive bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
+            Listening...
+          </span>
+        </>
       )}
     </div>
   );

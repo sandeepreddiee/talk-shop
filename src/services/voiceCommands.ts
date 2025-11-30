@@ -24,7 +24,7 @@ const commandPatterns: CommandPattern[] = [
     intent: 'NAVIGATE_ACCOUNT'
   },
   {
-    patterns: [/open assistant|ask assistant|talk to assistant|help me shop|shopping help/i],
+    patterns: [/open assistant|ask assistant|talk to assistant|help me shop|shopping help|assistant|ai assistant|voice assistant|talk to ai/i],
     intent: 'OPEN_ASSISTANT'
   },
   {
@@ -57,7 +57,7 @@ const commandPatterns: CommandPattern[] = [
     intent: 'READ_PAGE'
   },
   {
-    patterns: [/what can i say|help|show commands|voice commands|what commands|list commands/i],
+    patterns: [/what can i say|help|show commands|voice commands|what commands|list commands|available commands|show me commands|command list/i],
     intent: 'SHOW_HELP'
   },
   {
