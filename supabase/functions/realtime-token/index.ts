@@ -121,6 +121,24 @@ Remember: Users are blind and using voice. Be their eyes and hands.`,
           },
           {
             type: "function",
+            name: "view_product",
+            description: "Open and navigate to a product's detail page. Use this when user says 'open this product', 'show me this product', 'go to this product', etc.",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: {
+                  type: "string",
+                  description: "Product ID"
+                },
+                productName: {
+                  type: "string",
+                  description: "Product name to search for (alternative to productId)"
+                }
+              }
+            }
+          },
+          {
+            type: "function",
             name: "get_product_details",
             description: "Get full details about a specific product by ID or get the current product being viewed",
             parameters: {
