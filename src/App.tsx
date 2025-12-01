@@ -21,7 +21,7 @@ import { voiceCommandParser } from "./services/voiceCommands";
 import { shortcutManager } from "./services/shortcutManager";
 import { useVoiceCommands } from "./hooks/useVoiceCommands";
 import { usePreferenceEffects } from "./hooks/usePreferenceEffects";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Home from "./pages/Home";
 import Search from "./pages/Search";
 import Product from "./pages/Product";
@@ -55,6 +55,7 @@ const AppContent = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
+  const [triggerVoice, setTriggerVoice] = useState(false);
   
   usePreferenceEffects();
   useRealtimeOrders();
@@ -131,6 +132,16 @@ const AppContent = () => {
       description: 'Toggle shortcuts panel'
     });
 
+    shortcutManager.register({
+      key: 'v',
+      ctrl: true,
+      handler: () => {
+        console.log('🎤 Ctrl+V pressed - triggering voice');
+        setTriggerVoice(prev => !prev);
+      },
+      description: 'Start voice assistant (do everything)'
+    });
+
     return () => {
       shortcutManager.destroy();
     };
@@ -160,7 +171,7 @@ const AppContent = () => {
       <Footer />
       <HelpOverlay isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
-      <VoiceInterface onSpeakingChange={setIsAISpeaking} />
+      <VoiceInterface onSpeakingChange={setIsAISpeaking} trigger={triggerVoice} />
     </div>
   );
 };
