@@ -844,10 +844,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange, trigg
 
   // Handle Ctrl+V trigger
   useEffect(() => {
+    console.log('🔔 Trigger changed:', trigger, 'isConnected:', isConnected, 'isLoading:', isLoading);
     if (trigger !== undefined) {
       if (!isConnected && !isLoading) {
+        console.log('▶️ Starting conversation from trigger');
         startConversation();
       } else if (isConnected) {
+        console.log('⏹️ Ending conversation from trigger');
         endConversation();
       }
     }

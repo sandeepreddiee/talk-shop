@@ -113,6 +113,31 @@ const AppContent = () => {
     setShowOnboarding(false);
   };
 
+  // Direct Ctrl+V handler (bypass shortcutManager)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !e.shiftKey) {
+        const target = e.target as HTMLElement;
+        const isEditable = target.tagName === 'INPUT' || 
+                          target.tagName === 'TEXTAREA' || 
+                          target.isContentEditable;
+        
+        if (!isEditable) {
+          console.log('🎤 Ctrl+V detected - triggering voice');
+          e.preventDefault();
+          e.stopPropagation();
+          setTriggerVoice(prev => {
+            console.log('🔄 Toggling trigger from', prev, 'to', !prev);
+            return !prev;
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   useEffect(() => {
     shortcutManager.register({
       key: 'k',
@@ -130,16 +155,6 @@ const AppContent = () => {
       shift: true,
       handler: () => setShowShortcuts(!showShortcuts),
       description: 'Toggle shortcuts panel'
-    });
-
-    shortcutManager.register({
-      key: 'v',
-      ctrl: true,
-      handler: () => {
-        console.log('🎤 Ctrl+V pressed - triggering voice');
-        setTriggerVoice(prev => !prev);
-      },
-      description: 'Start voice assistant (do everything)'
     });
 
     return () => {
