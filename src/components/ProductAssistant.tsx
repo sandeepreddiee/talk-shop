@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Send, Loader2 } from 'lucide-react';
@@ -23,7 +23,9 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [inputText, setInputText] = useState('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const shouldContinueListening = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -34,8 +36,10 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
     } else {
       // Clean up when closed
       setMessages([]);
+      shouldContinueListening.current = false;
       if (isListening) {
-        stopListening();
+        speechService.stopListening();
+        setIsListening(false);
       }
     }
   }, [open]);
@@ -44,32 +48,60 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const startListening = async () => {
+  const continuousListen = useCallback(async () => {
+    if (!shouldContinueListening.current) return;
+
     try {
-      setIsListening(true);
       const transcript = await speechService.startListening();
       
       // Check if user said "stop listening"
       if (transcript.toLowerCase().includes('stop listening')) {
-        speechService.speak('Closing assistant');
-        onOpenChange(false);
+        shouldContinueListening.current = false;
+        setIsListening(false);
+        speechService.speak('Goodbye!');
+        setTimeout(() => onOpenChange(false), 1500);
         return;
       }
 
       if (transcript && transcript.trim()) {
         await sendMessage(transcript);
+        // Continue listening after processing response
+        if (shouldContinueListening.current && !isSpeaking) {
+          setTimeout(() => continuousListen(), 500);
+        }
+      } else {
+        // No speech detected, continue listening
+        if (shouldContinueListening.current) {
+          setTimeout(() => continuousListen(), 100);
+        }
       }
     } catch (error) {
       console.error('Speech recognition error:', error);
+      if (shouldContinueListening.current) {
+        // Retry on error
+        setTimeout(() => continuousListen(), 1000);
+      }
+    }
+  }, [isSpeaking, onOpenChange]);
+
+  const startListening = async () => {
+    try {
+      shouldContinueListening.current = true;
+      setIsListening(true);
+      await continuousListen();
+    } catch (error) {
+      console.error('Failed to start listening:', error);
       toast.error('Could not access microphone');
-    } finally {
+      shouldContinueListening.current = false;
       setIsListening(false);
     }
   };
 
   const stopListening = () => {
+    shouldContinueListening.current = false;
     speechService.stopListening();
     setIsListening(false);
+    speechService.speak('Listening stopped');
   };
 
   const sendMessage = async (text: string) => {
@@ -79,6 +111,7 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsProcessing(true);
+    setIsSpeaking(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('product-assistant', {
@@ -105,7 +138,14 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      speechService.speak(data.message);
+      await speechService.speak(data.message);
+      
+      setIsSpeaking(false);
+      
+      // Continue listening if in continuous mode
+      if (shouldContinueListening.current && isListening) {
+        setTimeout(() => continuousListen(), 500);
+      }
     } catch (error: any) {
       console.error('Assistant error:', error);
       
@@ -119,7 +159,14 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
       toast.error(errorMsg);
       const errorMessage: Message = { role: 'assistant', content: errorMsg };
       setMessages(prev => [...prev, errorMessage]);
-      speechService.speak(errorMsg);
+      await speechService.speak(errorMsg);
+      
+      setIsSpeaking(false);
+      
+      // Continue listening even after error if in continuous mode
+      if (shouldContinueListening.current && isListening) {
+        setTimeout(() => continuousListen(), 500);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -194,25 +241,31 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
               onClick={isListening ? stopListening : startListening}
               disabled={isProcessing}
               variant={isListening ? 'destructive' : 'default'}
-              className="flex-1"
+              className="flex-1 relative"
             >
               {isListening ? (
                 <>
                   <MicOff className="mr-2 h-4 w-4" />
                   Stop Listening
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 </>
               ) : (
                 <>
                   <Mic className="mr-2 h-4 w-4" />
-                  Start Voice
+                  Start Continuous Voice
                 </>
               )}
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground text-center">
-            Say "stop listening" to close the assistant
-          </p>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p className="text-center font-medium">
+              {isListening ? '🎤 Listening continuously...' : 'Click to start voice conversation'}
+            </p>
+            <p className="text-center">
+              Say "stop listening" to close the assistant
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
