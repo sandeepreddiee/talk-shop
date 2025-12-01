@@ -107,38 +107,47 @@ class SpeechService {
       }
 
       this.recognition.continuous = true;
+      this.recognition.interimResults = false; // Only final results
       this.isListening = true;
 
-      let fullTranscript = "";
-
       this.recognition.onresult = (event: any) => {
-          const result = event.results[event.resultIndex];
-          const text = result[0].transcript.toLowerCase();
-
-          // 🔥 STOP KEYWORD
-          if (text.includes("stop listening")) {
-            this.stopListening();
-            onStop();
-            return;
-          }
-
-          fullTranscript += " " + text;
-
+        // Only process final results
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          
           if (result.isFinal) {
-            onTranscript(fullTranscript.trim());
-            fullTranscript = "";
+            const text = result[0].transcript;
+            console.log('🎤 Final transcript:', text);
+            
+            // Check for stop keyword
+            if (text.toLowerCase().includes("stop listening")) {
+              this.stopListening();
+              onStop();
+              return;
+            }
+            
+            // Send final transcript
+            onTranscript(text);
           }
+        }
       };
 
       this.recognition.onerror = (event: any) => {
-        this.isListening = false;
-        reject(event.error);
+        console.error('Speech recognition error:', event.error);
+        if (event.error !== 'no-speech') {
+          this.isListening = false;
+          reject(event.error);
+        }
       };
 
       this.recognition.onend = () => {
         if (this.isListening) {
           // Chrome sometimes auto-stops, restart automatically
-          this.recognition.start();
+          try {
+            this.recognition.start();
+          } catch (e) {
+            console.error('Failed to restart recognition:', e);
+          }
         }
       };
 
