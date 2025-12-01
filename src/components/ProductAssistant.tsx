@@ -25,7 +25,7 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
   const [inputText, setInputText] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const shouldContinueListening = useRef(false);
+  const processingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -36,145 +36,119 @@ export const ProductAssistant = ({ product, open, onOpenChange }: ProductAssista
     } else {
       // Clean up when closed
       setMessages([]);
-      shouldContinueListening.current = false;
       if (isListening) {
         speechService.stopListening();
         setIsListening(false);
       }
+      processingRef.current = false;
     }
   }, [open]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const handleTranscript = useCallback(async (text: string) => {
+    console.log('📝 Received transcript:', text);
+    
+    // Prevent processing if already processing
+    if (processingRef.current) {
+      console.log('⏳ Already processing, skipping...');
+      return;
+    }
 
-  const continuousListen = useCallback(async () => {
-    if (!shouldContinueListening.current) return;
-
-    try {
-      const transcript = await speechService.startListening();
+    if (text && text.trim()) {
+      processingRef.current = true;
       
-      // Check if user said "stop listening"
-      if (transcript.toLowerCase().includes('stop listening')) {
-        shouldContinueListening.current = false;
-        setIsListening(false);
-        speechService.speak('Goodbye!');
-        setTimeout(() => onOpenChange(false), 1500);
-        return;
-      }
+      const userMessage: Message = { role: 'user', content: text };
+      setMessages(prev => [...prev, userMessage]);
+      setIsProcessing(true);
+      setIsSpeaking(true);
 
-      if (transcript && transcript.trim()) {
-        await sendMessage(transcript);
-        // Continue listening after processing response
-        if (shouldContinueListening.current && !isSpeaking) {
-          setTimeout(() => continuousListen(), 500);
+      console.log('💬 Sending message:', text);
+
+      try {
+        const currentMessages = messages;
+        const { data, error } = await supabase.functions.invoke('product-assistant', {
+          body: {
+            messages: [...currentMessages, userMessage],
+            product: {
+              name: product.name,
+              price: product.price,
+              originalPrice: product.originalPrice,
+              rating: product.rating,
+              reviewCount: product.reviewCount,
+              description: product.description,
+              features: product.features,
+              inStock: product.inStock
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        console.log('✅ Got response:', data.message);
+
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: data.message
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+        await speechService.speak(data.message);
+        
+      } catch (error: any) {
+        console.error('❌ Assistant error:', error);
+        
+        let errorMsg = 'Sorry, I encountered an error. Please try again.';
+        if (error.message?.includes('429')) {
+          errorMsg = 'Too many requests. Please wait a moment.';
+        } else if (error.message?.includes('402')) {
+          errorMsg = 'AI service unavailable. Please try again later.';
         }
-      } else {
-        // No speech detected, continue listening
-        if (shouldContinueListening.current) {
-          setTimeout(() => continuousListen(), 100);
-        }
-      }
-    } catch (error) {
-      console.error('Speech recognition error:', error);
-      if (shouldContinueListening.current) {
-        // Retry on error
-        setTimeout(() => continuousListen(), 1000);
+        
+        toast.error(errorMsg);
+        const errorMessage: Message = { role: 'assistant', content: errorMsg };
+        setMessages(prev => [...prev, errorMessage]);
+        await speechService.speak(errorMsg);
+      } finally {
+        setIsProcessing(false);
+        setIsSpeaking(false);
+        processingRef.current = false;
+        console.log('✅ Message processing complete');
       }
     }
-  }, [isSpeaking, onOpenChange]);
+  }, [messages, product]);
+
+  const handleStop = useCallback(() => {
+    console.log('🛑 Stop listening detected');
+    setIsListening(false);
+    speechService.speak('Goodbye!');
+    setTimeout(() => onOpenChange(false), 1500);
+  }, [onOpenChange]);
 
   const startListening = async () => {
     try {
-      shouldContinueListening.current = true;
+      console.log('🎤 Starting continuous listening...');
       setIsListening(true);
-      await continuousListen();
+      await speechService.startContinuousListening(handleTranscript, handleStop);
     } catch (error) {
-      console.error('Failed to start listening:', error);
-      toast.error('Could not access microphone');
-      shouldContinueListening.current = false;
+      console.error('❌ Failed to start listening:', error);
+      toast.error('Could not access microphone. Please check permissions.');
       setIsListening(false);
     }
   };
 
   const stopListening = () => {
-    shouldContinueListening.current = false;
+    console.log('⏹️ Stopping listening manually');
     speechService.stopListening();
     setIsListening(false);
     speechService.speak('Listening stopped');
   };
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim() || isProcessing) return;
-
-    const userMessage: Message = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
-    setIsProcessing(true);
-    setIsSpeaking(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('product-assistant', {
-        body: {
-          messages: [...messages, userMessage],
-          product: {
-            name: product.name,
-            price: product.price,
-            originalPrice: product.originalPrice,
-            rating: product.rating,
-            reviewCount: product.reviewCount,
-            description: product.description,
-            features: product.features,
-            inStock: product.inStock
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.message
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      await speechService.speak(data.message);
-      
-      setIsSpeaking(false);
-      
-      // Continue listening if in continuous mode
-      if (shouldContinueListening.current && isListening) {
-        setTimeout(() => continuousListen(), 500);
-      }
-    } catch (error: any) {
-      console.error('Assistant error:', error);
-      
-      let errorMsg = 'Sorry, I encountered an error. Please try again.';
-      if (error.message?.includes('429')) {
-        errorMsg = 'Too many requests. Please wait a moment.';
-      } else if (error.message?.includes('402')) {
-        errorMsg = 'AI service unavailable. Please try again later.';
-      }
-      
-      toast.error(errorMsg);
-      const errorMessage: Message = { role: 'assistant', content: errorMsg };
-      setMessages(prev => [...prev, errorMessage]);
-      await speechService.speak(errorMsg);
-      
-      setIsSpeaking(false);
-      
-      // Continue listening even after error if in continuous mode
-      if (shouldContinueListening.current && isListening) {
-        setTimeout(() => continuousListen(), 500);
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSendText = () => {
-    if (inputText.trim()) {
-      sendMessage(inputText);
+    if (inputText.trim() && !processingRef.current) {
+      handleTranscript(inputText);
     }
   };
 
