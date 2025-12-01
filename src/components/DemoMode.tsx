@@ -107,7 +107,7 @@ export const DemoMode = () => {
 
   if (!isActive) {
     return (
-      <div className="fixed bottom-20 right-4 z-50">
+      <div className="fixed top-20 left-4 z-40">
         <Button
           onClick={startDemo}
           size="lg"

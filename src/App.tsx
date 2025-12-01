@@ -119,31 +119,25 @@ const AppContent = () => {
     speechService.stopSpeaking();
     
     if (isListening) {
-      speechService.stopListening();
       setListening(false);
-      setLiveMessage('Voice input stopped');
+      setLiveMessage('');
     } else {
       try {
         setListening(true);
-        setLiveMessage('Listening... Say "stop listening" to end');
+        setLiveMessage('Listening for command...');
         
-        await speechService.startContinuousListening(
-          async (finalText) => {
-            console.log('Voice command received:', finalText);
-            const command = voiceCommandParser.parse(finalText);
-            if (command) {
-              setLiveMessage(`Executing: ${finalText}`);
-              await executeCommand(command);
-            } else {
-              setLiveMessage(`Not recognized: "${finalText}". Say "what can I say" for help, or use the voice assistant button for natural conversations.`);
-              await speechService.speak(`I didn't recognize "${finalText}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the shopping assistant.`);
-            }
-          },
-          () => {
-            setListening(false);
-            setLiveMessage('Voice input stopped');
-          }
-        );
+        const transcript = await speechService.startListening();
+        setListening(false);
+        
+        console.log('Voice command received:', transcript);
+        const command = voiceCommandParser.parse(transcript);
+        if (command) {
+          setLiveMessage(`Executing: ${transcript}`);
+          await executeCommand(command);
+        } else {
+          setLiveMessage(`Not recognized: "${transcript}". Say "what can I say" for help, or use the voice assistant button for natural conversations.`);
+          await speechService.speak(`I didn't recognize "${transcript}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the shopping assistant.`);
+        }
       } catch (error) {
         console.error('Voice toggle error:', error);
         setListening(false);
