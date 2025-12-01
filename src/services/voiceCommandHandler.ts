@@ -69,7 +69,9 @@ export class VoiceCommandHandler {
       'add to cart', 'add this to cart', 'add product', 'add this product', 'put in cart',
       'add to bag', 'add this to bag', 'put in bag',
       'add to court', 'add this to court', // Common misrecognition of "cart"
-      'add it to cart', 'add it to bag'
+      'add it to cart', 'add it to bag',
+      'had to cart', 'had to cut', 'had to court', // Speech recognition variations
+      'add to cut', 'had to bag'
     ])) {
       return await this.addToCart();
     }
@@ -82,7 +84,10 @@ export class VoiceCommandHandler {
     }
 
     // Wishlist - IMPORTANT: Check "add to wishlist" BEFORE "wishlist" navigation
-    if (this.matchesPatterns(text, ['add to wishlist', 'add this to wishlist', 'save to wishlist', 'wishlist this'])) {
+    if (this.matchesPatterns(text, [
+      'add to wishlist', 'add this to wishlist', 'save to wishlist', 'wishlist this',
+      'had to wishlist', 'add to wish list', 'add to wish' // Speech recognition variations
+    ])) {
       return await this.addToWishlist();
     }
 
@@ -90,6 +95,21 @@ export class VoiceCommandHandler {
     if (this.matchesPatterns(text, ['wishlist', 'my wishlist', 'view wishlist', 'show wishlist'])) {
       this.navigate('/wishlist');
       return { success: true, message: 'Opening wishlist' };
+    }
+
+    // Ask Assistant / Open Assistant
+    if (this.matchesPatterns(text, [
+      'ask assistant', 'open assistant', 'assistant', 'ask the assistant',
+      'talk to assistant', 'speak to assistant', 'help assistant'
+    ])) {
+      speechService.speak('Opening product assistant. You can ask me questions about this product.');
+      // Find and click the "Ask Assistant" button
+      const assistantButton = document.querySelector('[aria-label*="assistant" i], button:has-text("Ask Assistant")') as HTMLButtonElement;
+      if (assistantButton) {
+        assistantButton.click();
+        return { success: true, message: 'Opening assistant' };
+      }
+      return { success: false, message: 'Assistant button not found on this page' };
     }
 
     // Product details
@@ -632,7 +652,7 @@ export class VoiceCommandHandler {
   }
 
   private showHelp(): CommandResult {
-    const helpText = `Available commands: Navigate with 'go home', 'open cart', 'checkout', 'orders', 'account', 'wishlist'. Search with 'search for headphones'. Product actions: 'add to cart', 'add to wishlist', 'product details', 'what is the price', 'reviews', 'in stock'. On checkout page: 'my address is 123 Main Street', 'zip code 10001', 'place order'.`;
+    const helpText = `Available commands: Navigate with 'go home', 'open cart', 'checkout', 'orders', 'account', 'wishlist'. Search with 'search for headphones'. Product actions: 'add to cart', 'add to wishlist', 'ask assistant', 'product details', 'what is the price', 'reviews', 'in stock'. On checkout page: 'my address is 123 Main Street', 'zip code 10001', 'place order'.`;
     speechService.speak(helpText);
     return { success: true, message: 'Showing available commands' };
   }
