@@ -145,6 +145,42 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       }
     },
 
+    view_product: async (args: { productId?: string; productName?: string } = {}) => {
+      console.log('👁️ Opening product page:', args);
+      try {
+        let productId = args.productId;
+        
+        // If productName provided, search for the product
+        if (!productId && args.productName) {
+          console.log('👁️ Searching by name:', args.productName);
+          const { data: product, error: searchError } = await supabase
+            .from('products')
+            .select('id, name')
+            .ilike('name', `%${args.productName}%`)
+            .limit(1)
+            .single();
+          
+          console.log('👁️ Search result:', product);
+          if (product) {
+            productId = product.id;
+          }
+        }
+        
+        if (!productId) {
+          return { success: false, message: "Please specify which product to open" };
+        }
+        
+        navigate(`/product/${productId}`);
+        return { 
+          success: true, 
+          message: "Opening product page" 
+        };
+      } catch (error) {
+        console.error('View product error:', error);
+        return { success: false, message: "Failed to open product" };
+      }
+    },
+
     get_product_details: async (args: { productId?: string } = {}) => {
       console.log('📋 Getting product details:', args);
       try {
