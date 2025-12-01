@@ -69,8 +69,13 @@ export class VoiceCommandHandler {
       return await this.searchProducts(query);
     }
 
-    // Add to cart
-    if (this.matchesPatterns(text, ['add to cart', 'add this to cart', 'add product', 'add this product', 'put in cart'])) {
+    // Add to cart (including common speech recognition variations)
+    if (this.matchesPatterns(text, [
+      'add to cart', 'add this to cart', 'add product', 'add this product', 'put in cart',
+      'add to bag', 'add this to bag', 'put in bag',
+      'add to court', 'add this to court', // Common misrecognition of "cart"
+      'add it to cart', 'add it to bag'
+    ])) {
       return await this.addToCart();
     }
 
