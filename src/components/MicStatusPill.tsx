@@ -13,7 +13,7 @@ export const MicStatusPill = () => {
       aria-live="polite"
     >
       <Mic className="h-4 w-4" aria-hidden="true" />
-      <span className="text-sm font-medium">Listening... press Ctrl+V to stop</span>
+      <span className="text-sm font-medium">Listening... Release Ctrl+V to process</span>
     </div>
   );
 };

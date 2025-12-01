@@ -164,6 +164,7 @@ class SpeechService {
         return;
       }
 
+      // Stop any existing recognition
       if (this.isListening) {
         try {
           this.recognition.stop();
@@ -171,37 +172,50 @@ class SpeechService {
       }
 
       this.recognition.continuous = true;
+      this.recognition.interimResults = false; // Only final results
       this.isListening = true;
       this.pushToTalkTranscript = "";
 
       this.recognition.onresult = (event: any) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        let fullTranscript = "";
+        // Collect all final results
+        for (let i = 0; i < event.results.length; i++) {
           const result = event.results[i];
-          const transcript = result[0].transcript;
-          console.log(`🎤 Speech result [${i}] - Final: ${result.isFinal}, Text: "${transcript}"`);
-          
           if (result.isFinal) {
-            this.pushToTalkTranscript += " " + transcript;
-            console.log('✅ Added to transcript:', this.pushToTalkTranscript);
+            fullTranscript += result[0].transcript + " ";
+            console.log(`✅ Final result [${i}]:`, result[0].transcript);
           }
+        }
+        if (fullTranscript) {
+          this.pushToTalkTranscript = fullTranscript.trim();
+          console.log('📝 Updated transcript:', this.pushToTalkTranscript);
         }
       };
 
       this.recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+        console.error('❌ Speech error:', event.error);
+        // Don't reject on no-speech errors, just continue
+        if (event.error !== 'no-speech') {
+          this.isListening = false;
+        }
       };
 
       this.recognition.onend = () => {
+        console.log('🔄 Recognition ended, listening:', this.isListening);
         if (this.isListening) {
           // Auto-restart if still in push-to-talk mode
           try {
             this.recognition.start();
-          } catch (_) {}
+            console.log('🔄 Auto-restarted recognition');
+          } catch (e) {
+            console.log('⚠️ Could not restart:', e);
+          }
         }
       };
 
       try {
         this.recognition.start();
+        console.log('🎤 Recognition started');
         resolve();
       } catch (error) {
         this.isListening = false;
@@ -212,27 +226,32 @@ class SpeechService {
 
   stopPushToTalk(): Promise<string> {
     return new Promise((resolve) => {
-      if (!this.recognition || !this.isListening) {
-        console.log('⚠️ Not listening, returning empty transcript');
+      if (!this.recognition) {
+        console.log('⚠️ No recognition available');
+        resolve("");
+        return;
+      }
+
+      if (!this.isListening) {
+        console.log('⚠️ Not listening');
         resolve("");
         return;
       }
 
       this.isListening = false;
+      console.log('🛑 Stopping, current:', this.pushToTalkTranscript);
       
-      console.log('🛑 Stopping push-to-talk, current transcript:', this.pushToTalkTranscript);
-      
-      // Give a small delay to capture final results
+      // Wait longer to ensure final results are captured
       setTimeout(() => {
         try {
           this.recognition.stop();
         } catch (_) {}
         
         const transcript = this.pushToTalkTranscript.trim();
-        console.log('✅ Final transcript:', transcript);
+        console.log('✅ Returning transcript:', transcript);
         this.pushToTalkTranscript = "";
         resolve(transcript);
-      }, 300); // Increased delay to capture final results
+      }, 500); // Longer delay for Chrome to process final results
     });
   }
 

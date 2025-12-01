@@ -115,28 +115,30 @@ const AppContent = () => {
   };
 
   const handleVoiceStart = async () => {
-    // Stop any ongoing speech first
+    console.log('🎤 Starting push-to-talk...');
     speechService.stopSpeaking();
     
     try {
       setListening(true);
-      setLiveMessage('Listening... Hold Ctrl+V to continue');
+      setLiveMessage('Listening... Speak now, release Ctrl+V when done');
       await speechService.startPushToTalk();
+      console.log('✅ Push-to-talk started successfully');
     } catch (error) {
-      console.error('Voice start error:', error);
+      console.error('❌ Voice start error:', error);
       setListening(false);
       setLiveMessage('Voice input error');
     }
   };
 
   const handleVoiceStop = async () => {
+    console.log('🛑 Stopping push-to-talk...');
     setLiveMessage('Processing...');
     
     try {
       const transcript = await speechService.stopPushToTalk();
       setListening(false);
       
-      console.log('🎤 Raw transcript captured:', transcript);
+      console.log('📝 Final transcript:', transcript);
       
       if (!transcript || transcript.trim() === '') {
         setLiveMessage('No speech detected');
@@ -144,43 +146,47 @@ const AppContent = () => {
         return;
       }
       
-      console.log('Voice command received:', transcript);
       const command = voiceCommandParser.parse(transcript);
-      
-      console.log('Parsed command:', command);
+      console.log('🔍 Parsed command:', command);
       
       if (command) {
         setLiveMessage(`Executing: ${transcript}`);
         await executeCommand(command);
       } else {
-        setLiveMessage(`Not recognized: "${transcript}". Say "what can I say" for help, or use the voice assistant button for natural conversations.`);
-        await speechService.speak(`I didn't recognize "${transcript}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the shopping assistant.`);
+        setLiveMessage(`Not recognized: "${transcript}"`);
+        await speechService.speak(`I didn't recognize "${transcript}" as a command. Say "what can I say" to hear available commands.`);
       }
     } catch (error) {
-      console.error('Voice stop error:', error);
+      console.error('❌ Voice stop error:', error);
       setListening(false);
       setLiveMessage('Voice input error');
     }
   };
 
   useEffect(() => {
-    // Push-to-talk: Hold Ctrl+V to listen, release to stop
+    let isKeyDown = false;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !isListening) {
+      // Prevent triggering multiple times while key is held
+      if (isKeyDown) return;
+      
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
         e.preventDefault();
-        handleVoiceStart();
+        isKeyDown = true;
+        if (!isListening) {
+          handleVoiceStart();
+        }
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'v' && isListening) {
+      // Stop when either V or Ctrl is released
+      if ((e.key.toLowerCase() === 'v' || e.key === 'Control' || e.key === 'Meta') && isKeyDown) {
         e.preventDefault();
-        handleVoiceStop();
-      }
-      // Also stop if Ctrl is released
-      if ((e.key === 'Control' || e.key === 'Meta') && isListening) {
-        e.preventDefault();
-        handleVoiceStop();
+        isKeyDown = false;
+        if (isListening) {
+          handleVoiceStop();
+        }
       }
     };
 
@@ -210,7 +216,7 @@ const AppContent = () => {
       window.removeEventListener('keyup', handleKeyUp);
       shortcutManager.destroy();
     };
-  }, [isListening]);
+  }, [isListening, handleVoiceStart, handleVoiceStop]);
 
   return (
     <div className="min-h-screen flex flex-col">
