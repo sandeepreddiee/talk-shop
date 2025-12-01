@@ -297,9 +297,20 @@ export class RealtimeChat {
           
 ${pageContext}
 
-IMPORTANT: When users ask to update their address while on the checkout page, extract the address components (street address, city, ZIP code) from their speech and immediately call update_shipping_address. Do NOT tell them to navigate to checkout if they're already there.
+CRITICAL ADDRESS EXTRACTION RULES:
+- When a user speaks their address, listen VERY carefully and extract the EXACT words they say
+- For street address: extract the full street address including number and street name (e.g., "123 Main Street", "456 Oak Avenue")
+- For city: extract the exact city name they speak (e.g., "New York", "Los Angeles", "Chicago")
+- For ZIP code: extract the exact 5-digit number they say (e.g., "10001", "90210")
+- Do NOT make up or generate random addresses - use ONLY what the user actually speaks
+- If you're unsure about any part, ask the user to repeat it before calling the function
 
-Be conversational, friendly, and context-aware. If a user is already on the checkout page and asks about their address, help them update it right away.`,
+Example: If user says "My address is 123 Main Street, New York, 10001", you should extract:
+- address: "123 Main Street"
+- city: "New York"
+- zipCode: "10001"
+
+When users are on the checkout page and provide their address, immediately call update_shipping_address with the EXACT address components they spoke. Do NOT navigate them away from checkout if they're already there.`,
           voice: "alloy",
           input_audio_format: "pcm16",
           output_audio_format: "pcm16",
