@@ -15,8 +15,13 @@ export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
   const navigate = useNavigate();
 
   const handleFocus = () => {
-    // Don't auto-speak - let screen readers handle it via aria-label
-    // Only speak if explicitly requested via Quick Listen button
+    // Speak product info when tabbing through products
+    const dealInfo = product.originalPrice 
+      ? `On sale for $${product.price}, original price $${product.originalPrice}` 
+      : `$${product.price}`;
+    const ratingInfo = `${product.rating} stars with ${product.reviewCount} reviews`;
+    const announcement = `${product.name}. ${dealInfo}. ${ratingInfo}`;
+    speechService.speak(announcement);
   };
 
   const handleClick = () => {
