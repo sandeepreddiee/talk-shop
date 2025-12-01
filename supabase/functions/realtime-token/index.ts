@@ -129,13 +129,17 @@ Remember: Users are blind and using voice. Be their eyes and hands.`,
           {
             type: "function",
             name: "add_to_cart",
-            description: "Add a product to shopping cart. Can specify product by ID or use current product.",
+            description: "Add a product to shopping cart. Can specify product by ID, name, or use current product.",
             parameters: {
               type: "object",
               properties: {
                 productId: {
                   type: "string",
                   description: "Product ID (leave empty for current product)"
+                },
+                productName: {
+                  type: "string",
+                  description: "Product name to search for (alternative to productId)"
                 },
                 quantity: {
                   type: "number",
