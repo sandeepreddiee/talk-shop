@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { SkipToContentLink } from "./components/SkipToContentLink";
@@ -40,12 +41,13 @@ import { DemoMode } from "./components/DemoMode";
 import { useRealtimeOrders } from "./hooks/useRealtimeOrders";
 import { useRealtimeCart } from "./hooks/useRealtimeCart";
 import { supabase } from "./integrations/supabase/client";
-import VoiceInterface from "./components/VoiceInterface";
+import { VoiceCommandHandler } from "./services/voiceCommandHandler";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { setAssistantOpen } = useVoiceStore();
   const itemCount = useCartStore((state) => state.itemCount);
   const loadCart = useCartStore(state => state.loadCart);
@@ -54,8 +56,8 @@ const AppContent = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [isAISpeaking, setIsAISpeaking] = useState(false);
-  const [triggerVoice, setTriggerVoice] = useState<number>(0);
+  const [isListening, setIsListening] = useState(false);
+  const { toast } = useToast();
   
   usePreferenceEffects();
   useRealtimeOrders();
@@ -113,63 +115,95 @@ const AppContent = () => {
     setShowOnboarding(false);
   };
 
-  // CRITICAL: Ctrl+V handler with maximum priority
+  // CRITICAL: Ctrl+V Hold-to-Talk handler
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Log EVERY keypress for debugging
-      if (e.ctrlKey || e.metaKey) {
-        console.log('🔑 Modifier + Key:', e.key, {
-          ctrl: e.ctrlKey,
-          meta: e.metaKey,
-          shift: e.shiftKey,
-          key: e.key,
-          code: e.code
-        });
-      }
-      
-      // Check for Ctrl+V or Cmd+V
+    const commandHandler = new VoiceCommandHandler(navigate, location, toast);
+    
+    const handleKeyDown = async (e: KeyboardEvent) => {
       const isCtrlV = (e.ctrlKey || e.metaKey) && 
                       (e.key === 'v' || e.key === 'V' || e.code === 'KeyV') &&
                       !e.shiftKey && 
                       !e.altKey;
       
       if (isCtrlV) {
-        console.log('🎯 CTRL+V DETECTED!');
-        
         const target = e.target as HTMLElement;
         const isEditable = target.tagName === 'INPUT' || 
                           target.tagName === 'TEXTAREA' || 
                           target.isContentEditable ||
                           target.getAttribute('contenteditable') === 'true';
         
-        console.log('📍 Target:', target.tagName, 'Editable:', isEditable);
-        
-        if (!isEditable) {
-          console.log('✅ NOT in editable field - TRIGGERING VOICE');
+        if (!isEditable && !isListening) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
           
-          setTriggerVoice(prev => {
-            const newValue = Date.now(); // Use timestamp to ensure it always changes
-            console.log('🚀 TRIGGER VOICE - Previous:', prev, 'New:', newValue);
-            return newValue;
-          });
-        } else {
-          console.log('⏭️ In editable field - allowing default paste');
+          console.log('🎤 START LISTENING (Ctrl+V pressed)');
+          setIsListening(true);
+          
+          try {
+            await speechService.startPushToTalk();
+            speechService.speak('Listening');
+          } catch (error) {
+            console.error('❌ Failed to start listening:', error);
+            setIsListening(false);
+            toast({
+              title: "Microphone Error",
+              description: "Could not access microphone. Please check permissions.",
+              variant: "destructive",
+            });
+          }
         }
       }
     };
 
-    console.log('🎧 Installing Ctrl+V listener');
-    // Use capture phase and highest priority
+    const handleKeyUp = async (e: KeyboardEvent) => {
+      const isCtrlV = (e.ctrlKey || e.metaKey || e.key === 'Control' || e.key === 'Meta' || e.key === 'v' || e.key === 'V');
+      
+      if (isListening && isCtrlV) {
+        console.log('🛑 STOP LISTENING (Ctrl+V released)');
+        setIsListening(false);
+        
+        try {
+          const transcript = await speechService.stopPushToTalk();
+          console.log('📝 Transcript:', transcript);
+          
+          if (transcript && transcript.length > 0) {
+            speechService.speak('Processing');
+            const result = await commandHandler.processCommand(transcript);
+            
+            if (!result.success) {
+              toast({
+                title: "Command Failed",
+                description: result.message,
+                variant: "destructive",
+              });
+            }
+          } else {
+            console.log('⚠️ No transcript captured');
+            speechService.speak('No speech detected');
+          }
+        } catch (error) {
+          console.error('❌ Error processing command:', error);
+          toast({
+            title: "Error",
+            description: "Failed to process voice command",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown, { capture: true });
+    document.addEventListener('keyup', handleKeyUp, { capture: true });
     
     return () => {
-      console.log('🎧 Removing Ctrl+V listener');
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
+      document.removeEventListener('keyup', handleKeyUp, { capture: true });
+      if (isListening) {
+        speechService.stopPushToTalk();
+      }
     };
-  }, []);
+  }, [isListening, navigate, location, toast]);
 
   useEffect(() => {
     shortcutManager.register({
@@ -219,7 +253,12 @@ const AppContent = () => {
       <Footer />
       <HelpOverlay isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
-      <VoiceInterface onSpeakingChange={setIsAISpeaking} trigger={triggerVoice} />
+      {isListening && (
+        <div className="fixed top-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2">
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+          <span>Listening...</span>
+        </div>
+      )}
     </div>
   );
 };
