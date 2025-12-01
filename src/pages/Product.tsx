@@ -30,6 +30,7 @@ export default function ProductPage() {
   const assistantBtnRef = useRef<HTMLButtonElement>(null);
   const addToCartBtnRef = useRef<HTMLButtonElement>(null);
   const buyNowBtnRef = useRef<HTMLButtonElement>(null);
+  const wishlistBtnRef = useRef<HTMLButtonElement>(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
 
   useEffect(() => {
@@ -60,7 +61,14 @@ export default function ProductPage() {
 
   // Tab navigation handler - cycle through product buttons only
   useEffect(() => {
-    const buttonRefs = [listenBtnRef, assistantBtnRef, addToCartBtnRef, buyNowBtnRef];
+    const buttonRefs = [listenBtnRef, assistantBtnRef, addToCartBtnRef, buyNowBtnRef, wishlistBtnRef];
+    const buttonLabels = [
+      'Listen to Description',
+      'Ask Assistant', 
+      'Add to Cart',
+      'Buy Now',
+      'Add to Wishlist'
+    ];
     
     const handleTabNavigation = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
@@ -77,6 +85,9 @@ export default function ProductPage() {
         
         setFocusedIndex(nextIndex);
         buttonRefs[nextIndex].current?.focus();
+        
+        // Announce button name when focused
+        speechService.speak(buttonLabels[nextIndex]);
       }
     };
     
@@ -284,11 +295,14 @@ export default function ProductPage() {
             </Button>
           </div>
 
-          <WishlistButton
-            productId={product.id}
-            productName={product.name}
-            size="lg"
-          />
+          <div>
+            <WishlistButton
+              ref={wishlistBtnRef}
+              productId={product.id}
+              productName={product.name}
+              size="lg"
+            />
+          </div>
 
           <div className="text-sm text-muted-foreground space-y-1">
             <p><strong>Voice commands:</strong></p>

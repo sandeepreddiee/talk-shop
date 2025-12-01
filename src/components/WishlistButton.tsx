@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWishlistStore } from '@/stores/useWishlistStore';
@@ -13,12 +13,12 @@ interface WishlistButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
 }
 
-export const WishlistButton = ({ 
+export const WishlistButton = forwardRef<HTMLButtonElement, WishlistButtonProps>(({ 
   productId, 
   productName,
   size = 'default',
   variant = 'outline'
-}: WishlistButtonProps) => {
+}, ref) => {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore();
   const [isInList, setIsInList] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +55,7 @@ export const WishlistButton = ({
 
   return (
     <Button
+      ref={ref}
       onClick={handleToggle}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -65,7 +66,7 @@ export const WishlistButton = ({
       size={size}
       variant={variant}
       disabled={isLoading}
-      tabIndex={0}
+      tabIndex={-1}
       aria-label={isInList ? 'Remove from wishlist' : 'Add to wishlist'}
       className="gap-2"
     >
@@ -76,4 +77,6 @@ export const WishlistButton = ({
       {size !== 'icon' && (isInList ? 'Remove from Wishlist' : 'Add to Wishlist')}
     </Button>
   );
-};
+});
+
+WishlistButton.displayName = 'WishlistButton';
