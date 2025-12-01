@@ -14,6 +14,7 @@ import { Product } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { activityService } from '@/services/activityService';
 import { playSuccessSound, playErrorSound } from '@/components/AudioFeedback';
+import { VoiceAddressInput } from '@/components/VoiceAddressInput';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -64,6 +65,17 @@ export default function Checkout() {
   })).filter(item => item.product);
 
   const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+
+  const handleAddressCapture = (capturedAddress: string, capturedCity: string, capturedZipCode: string) => {
+    setAddress(capturedAddress);
+    setCity(capturedCity);
+    setZipCode(capturedZipCode);
+    activityService.logActivity('voice_address_input', { 
+      address: capturedAddress, 
+      city: capturedCity, 
+      zip: capturedZipCode 
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +154,9 @@ export default function Checkout() {
             <CardTitle>Shipping Address</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <VoiceAddressInput onAddressCapture={handleAddressCapture} />
+            
+            <form onSubmit={handleSubmit} className="space-y-4 mt-6">
               <div>
                 <Label htmlFor="address">Street Address *</Label>
                 <Input
@@ -186,6 +200,13 @@ export default function Checkout() {
                 className="w-full" 
                 size="lg"
                 disabled={isProcessing}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSubmit(e as any);
+                  }
+                }}
+                tabIndex={0}
               >
                 {isProcessing ? 'Processing...' : `Place Order - $${total.toFixed(2)}`}
               </Button>
