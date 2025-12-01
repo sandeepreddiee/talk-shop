@@ -114,73 +114,94 @@ const AppContent = () => {
     setShowOnboarding(false);
   };
 
-  const handleVoiceToggle = async () => {
+  const handleVoiceStart = async () => {
     // Stop any ongoing speech first
     speechService.stopSpeaking();
     
-    if (isListening) {
+    try {
+      setListening(true);
+      setLiveMessage('Listening... Hold Ctrl+V to continue');
+      await speechService.startPushToTalk();
+    } catch (error) {
+      console.error('Voice start error:', error);
       setListening(false);
-      setLiveMessage('');
-    } else {
-      try {
-        setListening(true);
-        setLiveMessage('Listening for command...');
-        
-        const transcript = await speechService.startListening();
-        setListening(false);
-        
-        console.log('Voice command received:', transcript);
-        const command = voiceCommandParser.parse(transcript);
-        if (command) {
-          setLiveMessage(`Executing: ${transcript}`);
-          await executeCommand(command);
-        } else {
-          setLiveMessage(`Not recognized: "${transcript}". Say "what can I say" for help, or use the voice assistant button for natural conversations.`);
-          await speechService.speak(`I didn't recognize "${transcript}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the shopping assistant.`);
-        }
-      } catch (error) {
-        console.error('Voice toggle error:', error);
-        setListening(false);
-        setLiveMessage('Voice input error');
+      setLiveMessage('Voice input error');
+    }
+  };
+
+  const handleVoiceStop = async () => {
+    setLiveMessage('Processing...');
+    
+    try {
+      const transcript = await speechService.stopPushToTalk();
+      setListening(false);
+      
+      if (!transcript || transcript.trim() === '') {
+        setLiveMessage('');
+        return;
       }
+      
+      console.log('Voice command received:', transcript);
+      const command = voiceCommandParser.parse(transcript);
+      if (command) {
+        setLiveMessage(`Executing: ${transcript}`);
+        await executeCommand(command);
+      } else {
+        setLiveMessage(`Not recognized: "${transcript}". Say "what can I say" for help, or use the voice assistant button for natural conversations.`);
+        await speechService.speak(`I didn't recognize "${transcript}" as a command. Say "what can I say" to hear available commands, or use the floating microphone button for natural conversations with the shopping assistant.`);
+      }
+    } catch (error) {
+      console.error('Voice stop error:', error);
+      setListening(false);
+      setLiveMessage('Voice input error');
     }
   };
 
   useEffect(() => {
+    // Push-to-talk: Hold Ctrl+V to listen, release to stop
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !isListening) {
+        e.preventDefault();
+        handleVoiceStart();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'v' && isListening) {
+        e.preventDefault();
+        handleVoiceStop();
+      }
+      // Also stop if Ctrl is released
+      if ((e.key === 'Control' || e.key === 'Meta') && isListening) {
+        e.preventDefault();
+        handleVoiceStop();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
     shortcutManager.register({
-      key: 'v',
+      key: 'k',
       ctrl: true,
-      handler: handleVoiceToggle,
-      description: 'Toggle voice input'
+      handler: () => {
+        const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
+        searchInput?.focus();
+      },
+      description: 'Focus search'
     });
 
     shortcutManager.register({
-      key: 'v',
+      key: 's',
       ctrl: true,
       shift: true,
-      handler: handleVoiceToggle,
-      description: 'Force toggle voice input'
+      handler: () => setShowShortcuts(!showShortcuts),
+      description: 'Toggle shortcuts panel'
     });
 
-      shortcutManager.register({
-        key: 'k',
-        ctrl: true,
-        handler: () => {
-          const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
-          searchInput?.focus();
-        },
-        description: 'Focus search'
-      });
-
-      shortcutManager.register({
-        key: 's',
-        ctrl: true,
-        shift: true,
-        handler: () => setShowShortcuts(!showShortcuts),
-        description: 'Toggle shortcuts panel'
-      });
-
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
       shortcutManager.destroy();
     };
   }, [isListening]);
@@ -188,7 +209,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <SkipToContentLink />
-      <Header onVoiceToggle={handleVoiceToggle} />
+      <Header onVoiceToggle={handleVoiceStart} />
       <MicStatusPill />
       <LiveRegion message={liveMessage} />
       <Routes>

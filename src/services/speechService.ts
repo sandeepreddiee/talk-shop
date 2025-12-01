@@ -2,6 +2,7 @@ class SpeechService {
   private synthesis: SpeechSynthesis;
   private recognition: any;
   private isListening = false;
+  private pushToTalkTranscript = "";
 
   constructor() {
     this.synthesis = window.speechSynthesis;
@@ -12,7 +13,7 @@ class SpeechService {
 
     if (SpeechRecognition) {
       this.recognition = new SpeechRecognition();
-      this.recognition.continuous = true;   // 🔥 CONTINUOUS LISTENING
+      this.recognition.continuous = true;
       this.recognition.interimResults = true;
       this.recognition.lang = "en-US";
     }
@@ -151,6 +152,80 @@ class SpeechService {
       this.recognition.stop();
       this.isListening = false;
     }
+  }
+
+  // -----------------------
+  // PUSH-TO-TALK (Hold Ctrl+V)
+  // -----------------------
+  startPushToTalk(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.recognition) {
+        reject(new Error('Speech recognition not supported'));
+        return;
+      }
+
+      if (this.isListening) {
+        try {
+          this.recognition.stop();
+        } catch (_) {}
+      }
+
+      this.recognition.continuous = true;
+      this.isListening = true;
+      this.pushToTalkTranscript = "";
+
+      this.recognition.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            this.pushToTalkTranscript += " " + result[0].transcript;
+          }
+        }
+      };
+
+      this.recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+      };
+
+      this.recognition.onend = () => {
+        if (this.isListening) {
+          // Auto-restart if still in push-to-talk mode
+          try {
+            this.recognition.start();
+          } catch (_) {}
+        }
+      };
+
+      try {
+        this.recognition.start();
+        resolve();
+      } catch (error) {
+        this.isListening = false;
+        reject(error);
+      }
+    });
+  }
+
+  stopPushToTalk(): Promise<string> {
+    return new Promise((resolve) => {
+      if (!this.recognition || !this.isListening) {
+        resolve("");
+        return;
+      }
+
+      this.isListening = false;
+      
+      // Give a small delay to capture final results
+      setTimeout(() => {
+        try {
+          this.recognition.stop();
+        } catch (_) {}
+        
+        const transcript = this.pushToTalkTranscript.trim();
+        this.pushToTalkTranscript = "";
+        resolve(transcript);
+      }, 100);
+    });
   }
 
   isCurrentlyListening() {
