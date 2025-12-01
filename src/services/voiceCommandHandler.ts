@@ -64,14 +64,15 @@ export class VoiceCommandHandler {
       return await this.searchProducts(query);
     }
 
-    // Add to cart (including common speech recognition variations)
+    // Add to cart (including common speech recognition variations and partial transcripts)
     if (this.matchesPatterns(text, [
       'add to cart', 'add this to cart', 'add product', 'add this product', 'put in cart',
       'add to bag', 'add this to bag', 'put in bag',
       'add to court', 'add this to court', // Common misrecognition of "cart"
       'add it to cart', 'add it to bag',
       'had to cart', 'had to cut', 'had to court', // Speech recognition variations
-      'add to cut', 'had to bag'
+      'add to cut', 'had to bag',
+      'to cart', 'to bag', 'to court', 'to cut' // Partial transcripts when beginning is cut off
     ])) {
       return await this.addToCart();
     }
@@ -86,7 +87,8 @@ export class VoiceCommandHandler {
     // Wishlist - IMPORTANT: Check "add to wishlist" BEFORE "wishlist" navigation
     if (this.matchesPatterns(text, [
       'add to wishlist', 'add this to wishlist', 'save to wishlist', 'wishlist this',
-      'had to wishlist', 'add to wish list', 'add to wish' // Speech recognition variations
+      'had to wishlist', 'add to wish list', 'add to wish', // Speech recognition variations
+      'to wishlist', 'to wish list', 'to wish' // Partial transcripts when beginning is cut off
     ])) {
       return await this.addToWishlist();
     }
