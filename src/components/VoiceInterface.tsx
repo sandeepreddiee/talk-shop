@@ -6,6 +6,7 @@ import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCartStore } from '@/stores/useCartStore';
 import { useWishlistStore } from '@/stores/useWishlistStore';
+import { useVoiceStore } from '@/stores/useVoiceStore';
 import { supabase } from '@/integrations/supabase/client';
 import { speechService } from '@/services/speechService';
 
@@ -21,7 +22,8 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
   const chatRef = useRef<RealtimeChat | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { addItem } = useCartStore();
+  const { addItem, refreshCart } = useCartStore();
+  const { setAISpeaking } = useVoiceStore();
 
   const handleMessage = (event: any) => {
     console.log('📩 Event:', event.type);
@@ -35,8 +37,10 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       });
     } else if (event.type === 'response.audio.delta') {
       speechService.stopSpeaking();
+      setAISpeaking(true);
       onSpeakingChange(true);
     } else if (event.type === 'response.audio.done') {
+      setAISpeaking(false);
       onSpeakingChange(false);
     } else if (event.type === 'error') {
       console.error('❌ Error:', event.error);
@@ -184,32 +188,68 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       }
     },
 
-    add_to_cart: async (args: { productId?: string; quantity?: number } = {}) => {
-      console.log('🛒 Adding to cart:', args);
+    add_to_cart: async (args: { productId?: string; productName?: string; quantity?: number } = {}) => {
+      console.log('🛒 Adding to cart - Args:', JSON.stringify(args));
+      console.log('🛒 Current location:', location.pathname);
       const quantity = args.quantity || 1;
       
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('🛒 User authenticated:', !!user);
+        
+        if (!user) return { success: false, message: "Please log in first" };
+        
         let productId = args.productId;
         
-        if (!productId) {
-          const match = location.pathname.match(/\/product\/([^/]+)/);
-          if (!match) {
-            return { success: false, message: "No product specified. Please provide a product ID." };
-          }
-          productId = match[1];
+        // If productName provided, search for the product
+        if (!productId && args.productName) {
+          console.log('🛒 Searching by name:', args.productName);
+          const { data: product, error: searchError } = await supabase
+            .from('products')
+            .select('id, name')
+            .ilike('name', `%${args.productName}%`)
+            .limit(1)
+            .single();
+          
+          console.log('🛒 Search result:', product, 'Error:', searchError);
+          productId = product?.id;
         }
         
-        const { data: product } = await supabase
+        // If still no productId, try to get from current URL
+        if (!productId) {
+          const match = location.pathname.match(/\/product\/([^/]+)/);
+          productId = match?.[1];
+          console.log('🛒 Extracted from URL:', productId);
+        }
+        
+        if (!productId) {
+          console.error('🛒 No product ID found');
+          return { success: false, message: "No product specified. Please tell me which product or navigate to a product page." };
+        }
+        
+        console.log('🛒 Final product ID:', productId);
+        
+        const { data: product, error: productError } = await supabase
           .from('products')
           .select('name, price')
           .eq('id', productId)
           .single();
         
-        if (!product) {
+        console.log('🛒 Product found:', product, 'Error:', productError);
+        
+        if (!product || productError) {
           return { success: false, message: "Product not found" };
         }
         
+        console.log('🛒 Adding to cart via store...');
         await addItem(productId, quantity);
+        
+        // Force refresh cart to ensure UI updates
+        console.log('🛒 Refreshing cart...');
+        await refreshCart();
+        
+        console.log('🛒 Cart updated successfully');
+        
         toast({
           title: "Added to cart",
           description: `${product.name} × ${quantity}`,
@@ -217,14 +257,14 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
         
         return { 
           success: true, 
-          message: `Added ${quantity} ${product.name} to cart. Total: $${(product.price * quantity).toFixed(2)}` 
+          message: `Added ${quantity} ${product.name} to your cart. Total price: $${(product.price * quantity).toFixed(2)}` 
         };
       } catch (error: any) {
-        console.error('Add to cart error:', error);
+        console.error('🛒 Add to cart error:', error);
         if (error?.message === 'User not authenticated') {
           return { success: false, message: "Please log in first" };
         }
-        return { success: false, message: "Failed to add to cart" };
+        return { success: false, message: `Failed to add to cart: ${error.message}` };
       }
     },
 
@@ -694,6 +734,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     chatRef.current?.disconnect();
     setIsConnected(false);
     setUserSpeaking(false);
+    setAISpeaking(false);
     onSpeakingChange(false);
     
     toast({
