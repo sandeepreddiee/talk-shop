@@ -132,17 +132,34 @@ export class VoiceCommandHandler {
       return await this.placeOrder();
     }
 
+    // Full address pattern: "123 Main Street, New York, 10001"
+    const fullAddressMatch = text.match(/^(.+?),\s*([a-z\s]+?),?\s*(\d{5})$/i);
+    if (fullAddressMatch) {
+      const [, street, city, zip] = fullAddressMatch;
+      return await this.updateFullAddress(street.trim(), city.trim(), zip);
+    }
+
+    // City update
+    const cityMatch = text.match(/(?:city is|in|city)\s+([a-z\s]+?)(?:\s+\d{5}|$)/i);
+    if (cityMatch && !text.includes('zip')) {
+      const city = cityMatch[1].trim();
+      return await this.updateCity(city);
+    }
+
     // Address update (extract address from speech)
-    const addressMatch = text.match(/(?:my address is|address is|shipping address)\s+(.+)/i);
+    const addressMatch = text.match(/(?:my address is|address is|shipping address|address)\s+(.+?)(?:\s+zip|\s+city|$)/i);
     if (addressMatch) {
-      const address = addressMatch[1];
+      const address = addressMatch[1].trim();
       return await this.updateAddress(address);
     }
 
-    const zipMatch = text.match(/(?:zip code|zip|postal code)\s+(\d{5})/i);
+    // ZIP code with optional individual digits: "zip code 1 0 0 0 1" or "zip code 10001"
+    const zipMatch = text.match(/(?:zip code|zip|postal code)\s+(\d[\s\d]{0,8}\d)/i);
     if (zipMatch) {
-      const zip = zipMatch[1];
-      return await this.updateZip(zip);
+      const zip = zipMatch[1].replace(/\s+/g, ''); // Remove spaces
+      if (zip.length === 5) {
+        return await this.updateZip(zip);
+      }
     }
 
     // Help
@@ -549,14 +566,51 @@ export class VoiceCommandHandler {
     }
   }
 
+  private async updateFullAddress(street: string, city: string, zip: string): Promise<CommandResult> {
+    useCheckoutStore.getState().setAddress(street);
+    useCheckoutStore.getState().setCity(city);
+    useCheckoutStore.getState().setZipCode(zip);
+    
+    this.toast({
+      title: "Address Updated",
+      description: `${street}, ${city}, ${zip}`,
+    });
+    
+    speechService.speak(`Address set to ${street}, ${city}, ZIP ${zip}`);
+    return { success: true, message: 'Full address updated' };
+  }
+
   private async updateAddress(address: string): Promise<CommandResult> {
     useCheckoutStore.getState().setAddress(address);
-    speechService.speak('Address updated');
+    
+    this.toast({
+      title: "Street Address Updated",
+      description: address,
+    });
+    
+    speechService.speak(`Street address set to ${address}`);
     return { success: true, message: 'Address updated' };
+  }
+
+  private async updateCity(city: string): Promise<CommandResult> {
+    useCheckoutStore.getState().setCity(city);
+    
+    this.toast({
+      title: "City Updated",
+      description: city,
+    });
+    
+    speechService.speak(`City set to ${city}`);
+    return { success: true, message: 'City updated' };
   }
 
   private async updateZip(zip: string): Promise<CommandResult> {
     useCheckoutStore.getState().setZipCode(zip);
+    
+    this.toast({
+      title: "ZIP Code Updated",
+      description: zip,
+    });
     
     // Try to lookup city
     try {
@@ -566,14 +620,14 @@ export class VoiceCommandHandler {
 
       if (!error && data?.city) {
         useCheckoutStore.getState().setCity(data.city);
-        speechService.speak(`ZIP code updated. City is ${data.city}`);
+        speechService.speak(`ZIP code ${zip} updated. City is ${data.city}`);
         return { success: true, message: `ZIP and city updated to ${data.city}` };
       }
     } catch (error) {
       console.error('ZIP lookup error:', error);
     }
 
-    speechService.speak('ZIP code updated');
+    speechService.speak(`ZIP code set to ${zip}`);
     return { success: true, message: 'ZIP code updated' };
   }
 

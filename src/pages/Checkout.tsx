@@ -14,7 +14,6 @@ import { Product } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { activityService } from '@/services/activityService';
 import { playSuccessSound, playErrorSound } from '@/components/AudioFeedback';
-import { VoiceAddressInput } from '@/components/VoiceAddressInput';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -65,17 +64,6 @@ export default function Checkout() {
   })).filter(item => item.product);
 
   const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-
-  const handleAddressCapture = (capturedAddress: string, capturedCity: string, capturedZipCode: string) => {
-    setAddress(capturedAddress);
-    setCity(capturedCity);
-    setZipCode(capturedZipCode);
-    activityService.logActivity('voice_address_input', { 
-      address: capturedAddress, 
-      city: capturedCity, 
-      zip: capturedZipCode 
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,9 +142,23 @@ export default function Checkout() {
             <CardTitle>Shipping Address</CardTitle>
           </CardHeader>
           <CardContent>
-            <VoiceAddressInput onAddressCapture={handleAddressCapture} />
+            <div className="mb-4 p-4 bg-muted rounded-lg border border-border">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <span className="text-primary">🎤</span> Voice Address Entry
+              </h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                Use <kbd className="px-2 py-1 bg-background border rounded">Ctrl+V</kbd> to speak your address
+              </p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p><strong>Example commands:</strong></p>
+                <p>• "My address is 123 Main Street"</p>
+                <p>• "City is New York"</p>
+                <p>• "ZIP code 10001"</p>
+                <p>• Or say it all: "123 Main Street, New York, 10001"</p>
+              </div>
+            </div>
             
-            <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="address">Street Address *</Label>
                 <Input
