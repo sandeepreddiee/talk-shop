@@ -853,48 +853,8 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange, trigg
     }
   }, [trigger]);
 
-  return (
-    <div className="fixed bottom-8 right-8 z-50 flex flex-col items-center gap-2">
-      {!isConnected ? (
-        <>
-          <Button 
-            onClick={startConversation}
-            disabled={isLoading}
-            size="lg"
-            className="rounded-full h-16 w-16 shadow-lg bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all"
-            aria-label="Start AI conversation"
-          >
-            {isLoading ? (
-              <Loader2 className="h-7 w-7 animate-spin" />
-            ) : (
-              <Mic className="h-7 w-7" />
-            )}
-          </Button>
-          <span className="text-xs text-muted-foreground bg-background/90 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
-            {isLoading ? 'Connecting...' : 'AI Helper'}
-          </span>
-        </>
-      ) : (
-        <>
-          <Button 
-            onClick={endConversation}
-            size="lg"
-            variant="destructive"
-            className={`rounded-full h-16 w-16 shadow-lg transition-all ${
-              userSpeaking ? 'ring-4 ring-primary animate-pulse' : ''
-            }`}
-            aria-label="End conversation"
-            title="Click to stop or say goodbye"
-          >
-            <MicOff className="h-7 w-7" />
-          </Button>
-          <span className="text-xs text-destructive bg-background/90 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
-            {userSpeaking ? 'Listening...' : 'Connected'}
-          </span>
-        </>
-      )}
-    </div>
-  );
+  // No visible UI - controlled only via Ctrl+V and Ask Assistant button
+  return null;
 };
 
 export default VoiceInterface;
