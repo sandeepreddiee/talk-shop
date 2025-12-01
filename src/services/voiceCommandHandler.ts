@@ -88,7 +88,8 @@ export class VoiceCommandHandler {
     if (this.matchesPatterns(text, [
       'add to wishlist', 'add this to wishlist', 'save to wishlist', 'wishlist this',
       'had to wishlist', 'add to wish list', 'add to wish', // Speech recognition variations
-      'to wishlist', 'to wish list', 'to wish' // Partial transcripts when beginning is cut off
+      'to wishlist', 'to wish list', 'to wish', // Partial transcripts when beginning is cut off
+      'add to this list', 'add to the list', 'add this to list' // Whisper variations
     ])) {
       return await this.addToWishlist();
     }
