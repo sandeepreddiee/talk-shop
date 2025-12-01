@@ -18,6 +18,7 @@ import { useCartStore } from "./stores/useCartStore";
 import { useWishlistStore } from "./stores/useWishlistStore";
 import { useAuthStore } from "./stores/useAuthStore";
 import { speechService } from "./services/speechService";
+import { whisperService } from "./services/whisperService";
 import { voiceCommandParser } from "./services/voiceCommands";
 import { shortcutManager } from "./services/shortcutManager";
 import { useVoiceCommands } from "./hooks/useVoiceCommands";
@@ -98,6 +99,9 @@ const AppContent = () => {
       setShowOnboarding(true);
       // Don't auto-speak on mount - let user interact first
     }
+    
+    // Preload Whisper model on app load for faster first use
+    whisperService.preloadModel().catch(console.error);
   }, []);
 
   // Stop speech on any click
@@ -115,7 +119,7 @@ const AppContent = () => {
     setShowOnboarding(false);
   };
 
-  // CRITICAL: Ctrl+V Hold-to-Talk handler
+  // CRITICAL: Ctrl+V Hold-to-Talk handler with Whisper
   useEffect(() => {
     const commandHandler = new VoiceCommandHandler(navigate, location, toast);
     const { setListening, setCurrentTranscript } = useVoiceStore.getState();
@@ -141,18 +145,16 @@ const AppContent = () => {
           console.log('🎤 START LISTENING (Ctrl+V pressed)');
           setIsListening(true);
           setListening(true);
-          setCurrentTranscript('');
+          setCurrentTranscript('Recording...');
           
           try {
-            await speechService.startPushToTalk((interimText) => {
-              // Update live transcript in real-time
-              setCurrentTranscript(interimText);
-            });
+            await whisperService.startRecording();
             speechService.speak('Listening');
           } catch (error) {
             console.error('❌ Failed to start listening:', error);
             setIsListening(false);
             setListening(false);
+            setCurrentTranscript('');
             toast({
               title: "Microphone Error",
               description: "Could not access microphone. Please check permissions.",
@@ -170,13 +172,14 @@ const AppContent = () => {
         console.log('🛑 STOP LISTENING (Ctrl+V released)');
         setIsListening(false);
         setListening(false);
+        setCurrentTranscript('Transcribing...');
         
         try {
-          const transcript = await speechService.stopPushToTalk();
+          const transcript = await whisperService.stopRecording();
           setCurrentTranscript('');
-          console.log('📝 Transcript:', transcript);
+          console.log('📝 Whisper Transcript:', transcript);
           
-          if (transcript && transcript.length > 0) {
+          if (transcript && transcript.trim().length > 0) {
             speechService.speak('Processing');
             const result = await commandHandler.processCommand(transcript);
             
@@ -193,6 +196,7 @@ const AppContent = () => {
           }
         } catch (error) {
           console.error('❌ Error processing command:', error);
+          setCurrentTranscript('');
           toast({
             title: "Error",
             description: "Failed to process voice command",
@@ -208,8 +212,8 @@ const AppContent = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
       document.removeEventListener('keyup', handleKeyUp, { capture: true });
-      if (isListening) {
-        speechService.stopPushToTalk();
+      if (isListening && whisperService.isCurrentlyRecording()) {
+        whisperService.stopRecording();
       }
     };
   }, [isListening, navigate, location, toast]);
