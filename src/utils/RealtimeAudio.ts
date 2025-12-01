@@ -178,6 +178,126 @@ export class RealtimeChat {
       await this.pc.setRemoteDescription(answer);
       console.log("WebRTC connection established");
 
+      // Wait for data channel to open before sending session config
+      await new Promise<void>((resolve) => {
+        if (this.dc?.readyState === 'open') {
+          resolve();
+        } else {
+          this.dc!.onopen = () => {
+            console.log('📡 Data channel opened - sending session config');
+            resolve();
+          };
+        }
+      });
+
+      // Configure session with tools
+      const tools = Object.keys(this.clientTools).map(name => {
+        // Define tool configurations
+        const toolConfigs: Record<string, any> = {
+          search_products: {
+            description: "Search for products by name, category, or features",
+            parameters: {
+              type: "object",
+              properties: {
+                query: { type: "string", description: "Search query" },
+                category: { type: "string", description: "Optional category filter" }
+              },
+              required: ["query"]
+            }
+          },
+          view_product: {
+            description: "Open and navigate to a product's detail page",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: { type: "string", description: "Product ID" },
+                productName: { type: "string", description: "Product name to search for" }
+              }
+            }
+          },
+          get_product_details: {
+            description: "Get full details about a specific product",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: { type: "string", description: "Product ID (leave empty for current product)" }
+              }
+            }
+          },
+          add_to_cart: {
+            description: "Add a product to shopping cart",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: { type: "string", description: "Product ID" },
+                productName: { type: "string", description: "Product name to search for" },
+                quantity: { type: "number", description: "Quantity to add" }
+              }
+            }
+          },
+          update_shipping_address: {
+            description: "Update shipping address fields during checkout. Extract address from user speech.",
+            parameters: {
+              type: "object",
+              properties: {
+                address: { type: "string", description: "Street address" },
+                city: { type: "string", description: "City name" },
+                zipCode: { type: "string", description: "ZIP code" }
+              }
+            }
+          },
+          place_order: {
+            description: "Complete the checkout and place the order",
+            parameters: { type: "object", properties: {} }
+          },
+          navigate: {
+            description: "Navigate to different pages",
+            parameters: {
+              type: "object",
+              properties: {
+                destination: { 
+                  type: "string", 
+                  enum: ["home", "cart", "checkout", "wishlist", "orders", "account"],
+                  description: "Destination to navigate to"
+                },
+                productId: { type: "string", description: "Product ID for product pages" }
+              }
+            }
+          }
+        };
+
+        return {
+          type: "function",
+          name,
+          description: toolConfigs[name]?.description || "",
+          parameters: toolConfigs[name]?.parameters || { type: "object", properties: {} }
+        };
+      });
+
+      this.dc!.send(JSON.stringify({
+        type: 'session.update',
+        session: {
+          modalities: ["text", "audio"],
+          instructions: "You are a helpful shopping assistant for AccessShop, an accessible e-commerce platform. Help users find products, manage their cart, and complete purchases. When users ask to update their address, extract the address components and call update_shipping_address. Be conversational and friendly.",
+          voice: "alloy",
+          input_audio_format: "pcm16",
+          output_audio_format: "pcm16",
+          input_audio_transcription: {
+            model: "whisper-1"
+          },
+          turn_detection: {
+            type: "server_vad",
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 1000
+          },
+          tools,
+          tool_choice: "auto",
+          temperature: 0.8
+        }
+      }));
+      console.log('📤 Sent session configuration with tools:', tools.map(t => t.name));
+
       // Start recording
       this.recorder = new AudioRecorder((audioData) => {
         if (this.dc?.readyState === 'open') {
