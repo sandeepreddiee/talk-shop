@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCartStore } from '@/stores/useCartStore';
+import { useWishlistStore } from '@/stores/useWishlistStore';
 import { supabase } from '@/integrations/supabase/client';
 import { speechService } from '@/services/speechService';
 
@@ -16,215 +17,671 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [userSpeaking, setUserSpeaking] = useState(false);
   const chatRef = useRef<RealtimeChat | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { addItem } = useCartStore();
 
   const handleMessage = (event: any) => {
-    console.log('📩 Received message:', event.type, event);
+    console.log('📩 Event:', event.type);
     
     if (event.type === 'session.created') {
-      console.log('✅ Session created successfully');
-      // Stop any ongoing screen reader speech when AI chat starts
+      console.log('✅ Session ready');
       speechService.stopSpeaking();
       toast({
         title: "Connected",
-        description: "Voice assistant is ready. Start speaking!",
+        description: "AI assistant ready - start speaking!",
       });
     } else if (event.type === 'response.audio.delta') {
-      // Stop screen reader when AI starts speaking
       speechService.stopSpeaking();
       onSpeakingChange(true);
     } else if (event.type === 'response.audio.done') {
       onSpeakingChange(false);
-    } else if (event.type === 'response.done') {
-      console.log('✅ Response completed');
     } else if (event.type === 'error') {
-      console.error('❌ Realtime API error:', event);
+      console.error('❌ Error:', event.error);
       toast({
-        title: "Assistant Error",
-        description: event.error?.message || 'An error occurred with the voice assistant',
+        title: "Error",
+        description: event.error?.message || 'Something went wrong',
         variant: "destructive",
       });
     } else if (event.type === 'input_audio_buffer.speech_started') {
-      console.log('🎤 User started speaking');
-      // Stop screen reader when user starts speaking to AI
+      console.log('🎤 You are speaking');
+      setUserSpeaking(true);
       speechService.stopSpeaking();
     } else if (event.type === 'input_audio_buffer.speech_stopped') {
-      console.log('🎤 User stopped speaking');
+      console.log('🎤 You stopped speaking');
+      setUserSpeaking(false);
     } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
       const transcript = (event.transcript || event.transcription || '').toLowerCase();
-      console.log('📝 Transcription:', transcript);
+      console.log('📝 You said:', transcript);
       
-      // Check if user wants to stop the conversation
       if (transcript.includes('stop listening') || 
           transcript.includes('stop conversation') ||
-          transcript.includes('end conversation') ||
-          transcript.includes('disconnect') ||
-          transcript.includes('stop') ||
           transcript.includes('goodbye') ||
           transcript.includes('bye')) {
-        console.log('🛑 User requested to stop conversation');
-        endConversation();
-      }
-    } else if (event.type === 'response.audio_transcript.delta') {
-      // Also check AI's transcription of user speech
-      const text = (event.delta || '').toLowerCase();
-      if (text.includes('stop listening') || text.includes('stop conversation')) {
-        console.log('🛑 User requested to stop (from delta)');
+        console.log('🛑 Ending conversation');
         endConversation();
       }
     }
   };
 
   const getClientTools = () => ({
-    add_to_cart: async (args: { quantity?: number }) => {
+    search_products: async (args: { query: string; category?: string }) => {
+      console.log('🔍 Searching:', args);
+      try {
+        let query = supabase
+          .from('products')
+          .select('id, name, price, rating, category, description')
+          .ilike('name', `%${args.query}%`);
+        
+        if (args.category) {
+          query = query.eq('category', args.category);
+        }
+        
+        const { data, error } = await query.limit(5);
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          return { success: false, message: `No products found for "${args.query}"` };
+        }
+        
+        navigate(`/s/${encodeURIComponent(args.query)}`);
+        return { 
+          success: true, 
+          message: `Found ${data.length} products`,
+          products: data 
+        };
+      } catch (error) {
+        console.error('Search error:', error);
+        return { success: false, message: "Search failed" };
+      }
+    },
+
+    get_products: async (args: any = {}) => {
+      console.log('📦 Getting products:', args);
+      try {
+        let query = supabase
+          .from('products')
+          .select('*');
+        
+        if (args.category) query = query.eq('category', args.category);
+        if (args.minPrice) query = query.gte('price', args.minPrice);
+        if (args.maxPrice) query = query.lte('price', args.maxPrice);
+        if (args.minRating) query = query.gte('rating', args.minRating);
+        if (args.onlyDeals) query = query.not('original_price', 'is', null);
+        
+        // Sorting
+        if (args.sortBy === 'price_asc') query = query.order('price', { ascending: true });
+        else if (args.sortBy === 'price_desc') query = query.order('price', { ascending: false });
+        else if (args.sortBy === 'rating') query = query.order('rating', { ascending: false });
+        else if (args.sortBy === 'name') query = query.order('name', { ascending: true });
+        
+        query = query.limit(args.limit || 10);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        return { 
+          success: true, 
+          message: `Found ${data?.length || 0} products`,
+          products: data 
+        };
+      } catch (error) {
+        console.error('Get products error:', error);
+        return { success: false, message: "Failed to get products" };
+      }
+    },
+
+    get_product_details: async (args: { productId?: string } = {}) => {
+      console.log('📋 Getting product details:', args);
+      try {
+        let productId = args.productId;
+        
+        // If no productId, try to get from current URL
+        if (!productId) {
+          const match = location.pathname.match(/\/product\/([^/]+)/);
+          if (!match) {
+            return { success: false, message: "Not viewing a product. Please provide a product ID or navigate to a product page." };
+          }
+          productId = match[1];
+        }
+        
+        const { data: product, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+        
+        if (error) throw error;
+        if (!product) return { success: false, message: "Product not found" };
+        
+        // Navigate if not already on product page
+        if (!location.pathname.includes(productId)) {
+          navigate(`/product/${productId}`);
+        }
+        
+        return {
+          success: true,
+          product: {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            originalPrice: product.original_price,
+            rating: product.rating,
+            reviewCount: product.reviews,
+            description: product.description,
+            features: product.features,
+            inStock: product.in_stock,
+            stockQuantity: product.stock_quantity,
+            category: product.category
+          }
+        };
+      } catch (error) {
+        console.error('Get product details error:', error);
+        return { success: false, message: "Failed to get product details" };
+      }
+    },
+
+    add_to_cart: async (args: { productId?: string; quantity?: number } = {}) => {
+      console.log('🛒 Adding to cart:', args);
       const quantity = args.quantity || 1;
       
-      // Get current product from URL
-      const match = location.pathname.match(/\/product\/([^/]+)/);
-      if (!match) {
-        return { success: false, message: "No product currently viewing" };
-      }
-      
-      const productId = match[1];
-      const { data: product } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .single();
-      
-      if (!product) {
-        return { success: false, message: "Product not found" };
-      }
-      
-      await addItem(productId, quantity);
-      toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart`,
-      });
-      
-      return { success: true, message: `Added ${quantity} ${product.name} to cart` };
-    },
-    
-    navigate: async (args: { page: string }) => {
-      const routes: Record<string, string> = {
-        home: '/',
-        cart: '/cart',
-        checkout: '/checkout',
-        search: '/search',
-        wishlist: '/wishlist',
-        orders: '/orders'
-      };
-      
-      const route = routes[args.page];
-      if (route) {
-        navigate(route);
-        return { success: true, message: `Navigated to ${args.page}` };
-      }
-      
-      return { success: false, message: "Unknown page" };
-    },
-    
-    get_product_info: async () => {
-      const match = location.pathname.match(/\/product\/([^/]+)/);
-      if (!match) {
-        return { success: false, message: "Not viewing a product" };
-      }
-      
-      const { data: product } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', match[1])
-        .single();
-      
-      if (!product) {
-        return { success: false, message: "Product not found" };
-      }
-      
-      return {
-        success: true,
-        product: {
-          name: product.name,
-          price: product.price,
-          originalPrice: product.original_price,
-          rating: product.rating,
-          reviews: product.reviews,
-          description: product.description,
-          features: product.features,
-          inStock: product.in_stock,
-          category: product.category
+      try {
+        let productId = args.productId;
+        
+        if (!productId) {
+          const match = location.pathname.match(/\/product\/([^/]+)/);
+          if (!match) {
+            return { success: false, message: "No product specified. Please provide a product ID." };
+          }
+          productId = match[1];
         }
-      };
+        
+        const { data: product } = await supabase
+          .from('products')
+          .select('name, price')
+          .eq('id', productId)
+          .single();
+        
+        if (!product) {
+          return { success: false, message: "Product not found" };
+        }
+        
+        await addItem(productId, quantity);
+        toast({
+          title: "Added to cart",
+          description: `${product.name} × ${quantity}`,
+        });
+        
+        return { 
+          success: true, 
+          message: `Added ${quantity} ${product.name} to cart. Total: $${(product.price * quantity).toFixed(2)}` 
+        };
+      } catch (error: any) {
+        console.error('Add to cart error:', error);
+        if (error?.message === 'User not authenticated') {
+          return { success: false, message: "Please log in first" };
+        }
+        return { success: false, message: "Failed to add to cart" };
+      }
+    },
+
+    view_cart: async () => {
+      console.log('👀 Viewing cart');
+      try {
+        const { data: cartItems, error } = await supabase
+          .from('cart')
+          .select(`
+            product_id,
+            quantity,
+            products (name, price, image)
+          `)
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+        
+        if (error) throw error;
+        
+        if (!cartItems || cartItems.length === 0) {
+          return { success: true, message: "Your cart is empty", items: [] };
+        }
+        
+        const items = cartItems.map((item: any) => ({
+          productId: item.product_id,
+          name: item.products.name,
+          price: item.products.price,
+          quantity: item.quantity,
+          subtotal: item.products.price * item.quantity
+        }));
+        
+        const total = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
+        
+        navigate('/cart');
+        return {
+          success: true,
+          message: `You have ${items.length} items in cart. Total: $${total.toFixed(2)}`,
+          items,
+          total
+        };
+      } catch (error) {
+        console.error('View cart error:', error);
+        return { success: false, message: "Failed to load cart" };
+      }
+    },
+
+    update_cart_quantity: async (args: { productId: string; quantity: number }) => {
+      console.log('📝 Updating cart:', args);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "Please log in" };
+        
+        if (args.quantity === 0) {
+          // Remove item
+          const { error } = await supabase
+            .from('cart')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('product_id', args.productId);
+          
+          if (error) throw error;
+          
+          toast({ title: "Removed from cart" });
+          return { success: true, message: "Item removed from cart" };
+        } else {
+          // Update quantity
+          const { error } = await supabase
+            .from('cart')
+            .update({ quantity: args.quantity })
+            .eq('user_id', user.id)
+            .eq('product_id', args.productId);
+          
+          if (error) throw error;
+          
+          toast({ title: "Quantity updated" });
+          return { success: true, message: `Quantity updated to ${args.quantity}` };
+        }
+      } catch (error) {
+        console.error('Update cart error:', error);
+        return { success: false, message: "Failed to update cart" };
+      }
+    },
+
+    add_to_wishlist: async (args: { productId?: string } = {}) => {
+      console.log('❤️ Adding to wishlist:', args);
+      try {
+        let productId = args.productId;
+        
+        if (!productId) {
+          const match = location.pathname.match(/\/product\/([^/]+)/);
+          if (!match) {
+            return { success: false, message: "No product specified" };
+          }
+          productId = match[1];
+        }
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "Please log in" };
+        
+        const { data: product } = await supabase
+          .from('products')
+          .select('name')
+          .eq('id', productId)
+          .single();
+        
+        const { error } = await supabase
+          .from('wishlist')
+          .insert({ user_id: user.id, product_id: productId });
+        
+        if (error) {
+          if (error.code === '23505') {
+            return { success: false, message: "Already in wishlist" };
+          }
+          throw error;
+        }
+        
+        toast({ title: "Added to wishlist", description: product?.name });
+        return { success: true, message: `Added ${product?.name} to wishlist` };
+      } catch (error) {
+        console.error('Add to wishlist error:', error);
+        return { success: false, message: "Failed to add to wishlist" };
+      }
+    },
+
+    remove_from_wishlist: async (args: { productId: string }) => {
+      console.log('💔 Removing from wishlist:', args);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "Please log in" };
+        
+        const { error } = await supabase
+          .from('wishlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', args.productId);
+        
+        if (error) throw error;
+        
+        toast({ title: "Removed from wishlist" });
+        return { success: true, message: "Removed from wishlist" };
+      } catch (error) {
+        console.error('Remove from wishlist error:', error);
+        return { success: false, message: "Failed to remove from wishlist" };
+      }
+    },
+
+    view_wishlist: async () => {
+      console.log('💝 Viewing wishlist');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "Please log in" };
+        
+        const { data, error } = await supabase
+          .from('wishlist')
+          .select(`
+            product_id,
+            products (name, price, rating)
+          `)
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          return { success: true, message: "Your wishlist is empty", items: [] };
+        }
+        
+        navigate('/wishlist');
+        return {
+          success: true,
+          message: `You have ${data.length} items in your wishlist`,
+          items: data.map((item: any) => ({
+            productId: item.product_id,
+            name: item.products.name,
+            price: item.products.price,
+            rating: item.products.rating
+          }))
+        };
+      } catch (error) {
+        console.error('View wishlist error:', error);
+        return { success: false, message: "Failed to load wishlist" };
+      }
+    },
+
+    navigate: async (args: { destination: string; productId?: string }) => {
+      console.log('🧭 Navigating:', args);
+      try {
+        const routes: Record<string, string> = {
+          home: '/',
+          cart: '/cart',
+          checkout: '/checkout',
+          wishlist: '/wishlist',
+          orders: '/orders',
+          account: '/account'
+        };
+        
+        if (args.productId) {
+          navigate(`/product/${args.productId}`);
+          return { success: true, message: `Opening product page` };
+        }
+        
+        const route = routes[args.destination];
+        if (route) {
+          navigate(route);
+          return { success: true, message: `Navigated to ${args.destination}` };
+        }
+        
+        return { success: false, message: "Unknown destination" };
+      } catch (error) {
+        console.error('Navigation error:', error);
+        return { success: false, message: "Navigation failed" };
+      }
+    },
+
+    get_reviews: async (args: { productId?: string; minRating?: number } = {}) => {
+      console.log('⭐ Getting reviews:', args);
+      try {
+        let productId = args.productId;
+        
+        if (!productId) {
+          const match = location.pathname.match(/\/product\/([^/]+)/);
+          if (!match) {
+            return { success: false, message: "No product specified" };
+          }
+          productId = match[1];
+        }
+        
+        let query = supabase
+          .from('reviews')
+          .select('rating, title, content, verified_purchase, helpful_count')
+          .eq('product_id', productId)
+          .order('helpful_count', { ascending: false });
+        
+        if (args.minRating) {
+          query = query.gte('rating', args.minRating);
+        }
+        
+        const { data, error } = await query.limit(5);
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          return { success: true, message: "No reviews yet for this product", reviews: [] };
+        }
+        
+        return {
+          success: true,
+          message: `Found ${data.length} reviews`,
+          reviews: data.map(r => ({
+            rating: r.rating,
+            title: r.title,
+            content: r.content,
+            verified: r.verified_purchase
+          }))
+        };
+      } catch (error) {
+        console.error('Get reviews error:', error);
+        return { success: false, message: "Failed to load reviews" };
+      }
+    },
+
+    compare_products: async (args: { productIds: string[] }) => {
+      console.log('⚖️ Comparing products:', args);
+      try {
+        if (!args.productIds || args.productIds.length < 2) {
+          return { success: false, message: "Need at least 2 products to compare" };
+        }
+        
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, name, price, rating, features, description')
+          .in('id', args.productIds);
+        
+        if (error) throw error;
+        
+        return {
+          success: true,
+          message: `Comparing ${data?.length} products`,
+          products: data
+        };
+      } catch (error) {
+        console.error('Compare error:', error);
+        return { success: false, message: "Comparison failed" };
+      }
+    },
+
+    get_recommendations: async (args: { category?: string; maxPrice?: number } = {}) => {
+      console.log('💡 Getting recommendations:', args);
+      try {
+        let query = supabase
+          .from('products')
+          .select('id, name, price, rating, category')
+          .eq('is_featured', true)
+          .gte('rating', 4.5);
+        
+        if (args.category) query = query.eq('category', args.category);
+        if (args.maxPrice) query = query.lte('price', args.maxPrice);
+        
+        const { data, error } = await query
+          .order('rating', { ascending: false })
+          .limit(5);
+        
+        if (error) throw error;
+        
+        return {
+          success: true,
+          message: `Here are ${data?.length || 0} recommendations`,
+          recommendations: data
+        };
+      } catch (error) {
+        console.error('Recommendations error:', error);
+        return { success: false, message: "Failed to get recommendations" };
+      }
+    },
+
+    view_orders: async (args: { limit?: number } = {}) => {
+      console.log('📦 Viewing orders:', args);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "Please log in" };
+        
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            total,
+            status,
+            created_at,
+            order_items (
+              quantity,
+              price,
+              products (name)
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(args.limit || 5);
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          return { success: true, message: "No orders yet", orders: [] };
+        }
+        
+        navigate('/orders');
+        return {
+          success: true,
+          message: `You have ${data.length} recent orders`,
+          orders: data.map(order => ({
+            id: order.id,
+            total: order.total,
+            status: order.status,
+            date: order.created_at,
+            itemCount: order.order_items?.length || 0
+          }))
+        };
+      } catch (error) {
+        console.error('View orders error:', error);
+        return { success: false, message: "Failed to load orders" };
+      }
+    },
+
+    update_preferences: async (args: { highContrast?: boolean; textSize?: string }) => {
+      console.log('⚙️ Updating preferences:', args);
+      try {
+        const { usePreferenceStore } = await import('@/stores/usePreferenceStore');
+        const store = usePreferenceStore.getState();
+        
+        if (args.highContrast !== undefined) {
+          store.updatePreference('highContrast', args.highContrast);
+          toast({ title: `High contrast ${args.highContrast ? 'enabled' : 'disabled'}` });
+        }
+        
+        if (args.textSize) {
+          store.updatePreference('textSize', args.textSize);
+          toast({ title: `Text size changed to ${args.textSize}` });
+        }
+        
+        navigate('/account');
+        return { success: true, message: "Preferences updated" };
+      } catch (error) {
+        console.error('Update preferences error:', error);
+        return { success: false, message: "Failed to update preferences" };
+      }
     },
     
     update_shipping_address: async (args: { address?: string; city?: string; zipCode?: string }) => {
-      // Check if on checkout page
-      if (!location.pathname.includes('/checkout')) {
-        return { success: false, message: "Not on checkout page. Navigate to checkout first." };
+      console.log('📮 Updating address:', args);
+      try {
+        if (!location.pathname.includes('/checkout')) {
+          return { success: false, message: "Not on checkout page. Navigate to checkout first." };
+        }
+        
+        const { useCheckoutStore } = await import('@/stores/useCheckoutStore');
+        const store = useCheckoutStore.getState();
+        
+        if (args.address) store.setAddress(args.address);
+        if (args.city) store.setCity(args.city);
+        if (args.zipCode) store.setZipCode(args.zipCode);
+        
+        const fields = [];
+        if (args.address) fields.push('address');
+        if (args.city) fields.push('city');
+        if (args.zipCode) fields.push('ZIP code');
+        
+        toast({
+          title: "Address updated",
+          description: fields.join(', '),
+        });
+        
+        return { 
+          success: true, 
+          message: `Updated ${fields.join(', ')}` 
+        };
+      } catch (error) {
+        console.error('Update address error:', error);
+        return { success: false, message: "Failed to update address" };
       }
-      
-      // Import the store dynamically to update it
-      const { useCheckoutStore } = await import('@/stores/useCheckoutStore');
-      const store = useCheckoutStore.getState();
-      
-      if (args.address) store.setAddress(args.address);
-      if (args.city) store.setCity(args.city);
-      if (args.zipCode) store.setZipCode(args.zipCode);
-      
-      const fields = [];
-      if (args.address) fields.push('address');
-      if (args.city) fields.push('city');
-      if (args.zipCode) fields.push('ZIP code');
-      
-      toast({
-        title: "Address updated",
-        description: `Updated ${fields.join(', ')}`,
-      });
-      
-      return { 
-        success: true, 
-        message: `Updated ${fields.join(', ')}` 
-      };
     },
     
     place_order: async () => {
-      // Check if on checkout page
-      if (!location.pathname.includes('/checkout')) {
-        return { success: false, message: "Not on checkout page. Navigate to checkout first." };
+      console.log('✅ Placing order');
+      try {
+        if (!location.pathname.includes('/checkout')) {
+          return { success: false, message: "Not on checkout page" };
+        }
+        
+        const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        if (submitButton) {
+          submitButton.click();
+          return { success: true, message: "Placing your order..." };
+        }
+        
+        return { success: false, message: "Could not find order form" };
+      } catch (error) {
+        console.error('Place order error:', error);
+        return { success: false, message: "Failed to place order" };
       }
-      
-      // Trigger form submission by dispatching event
-      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-      if (submitButton) {
-        submitButton.click();
-        return { success: true, message: "Placing your order..." };
-      }
-      
-      return { success: false, message: "Could not find order form" };
     }
   });
 
   const startConversation = async () => {
     setIsLoading(true);
     try {
-      // Stop any ongoing screen reader speech before starting AI chat
+      console.log('🚀 Starting AI assistant...');
       speechService.stopSpeaking();
       
-      // Request microphone permission first
+      // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('✅ Microphone access granted');
       
       chatRef.current = new RealtimeChat(handleMessage, getClientTools());
       await chatRef.current.init();
       setIsConnected(true);
       
-      console.log('🎉 Voice assistant fully initialized and ready');
+      console.log('🎉 AI assistant ready');
     } catch (error) {
-      console.error('Error starting conversation:', error);
+      console.error('❌ Start error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to start conversation',
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : 'Failed to start assistant',
         variant: "destructive",
       });
     } finally {
@@ -233,13 +690,15 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
   };
 
   const endConversation = () => {
+    console.log('👋 Ending conversation');
     chatRef.current?.disconnect();
     setIsConnected(false);
+    setUserSpeaking(false);
     onSpeakingChange(false);
     
     toast({
       title: "Disconnected",
-      description: "Voice assistant ended",
+      description: "AI assistant ended",
     });
   };
 
@@ -257,13 +716,17 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
             onClick={startConversation}
             disabled={isLoading}
             size="lg"
-            className="rounded-full h-16 w-16 shadow-lg bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-            aria-label="Start voice conversation"
+            className="rounded-full h-16 w-16 shadow-lg bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all"
+            aria-label="Start AI conversation"
           >
-            <Mic className="h-7 w-7" />
+            {isLoading ? (
+              <Loader2 className="h-7 w-7 animate-spin" />
+            ) : (
+              <Mic className="h-7 w-7" />
+            )}
           </Button>
-          <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
-            Natural Conversation
+          <span className="text-xs text-muted-foreground bg-background/90 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
+            {isLoading ? 'Connecting...' : 'AI Helper'}
           </span>
         </>
       ) : (
@@ -272,14 +735,16 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
             onClick={endConversation}
             size="lg"
             variant="destructive"
-            className="rounded-full h-16 w-16 shadow-lg animate-pulse"
-            aria-label="End voice conversation - Click to stop"
-            title="Click to stop listening"
+            className={`rounded-full h-16 w-16 shadow-lg transition-all ${
+              userSpeaking ? 'ring-4 ring-primary animate-pulse' : ''
+            }`}
+            aria-label="End conversation"
+            title="Click to stop or say goodbye"
           >
             <MicOff className="h-7 w-7" />
           </Button>
-          <span className="text-xs text-destructive bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
-            Click to stop or say "stop listening"
+          <span className="text-xs text-destructive bg-background/90 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
+            {userSpeaking ? 'Listening...' : 'Connected'}
           </span>
         </>
       )}
