@@ -55,7 +55,7 @@ const AppContent = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
-  const [triggerVoice, setTriggerVoice] = useState(false);
+  const [triggerVoice, setTriggerVoice] = useState<number>(0);
   
   usePreferenceEffects();
   useRealtimeOrders();
@@ -113,39 +113,61 @@ const AppContent = () => {
     setShowOnboarding(false);
   };
 
-  // Direct Ctrl+V handler (bypass shortcutManager)
+  // CRITICAL: Ctrl+V handler with maximum priority
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      console.log('⌨️ Key pressed:', e.key, 'Ctrl:', e.ctrlKey, 'Meta:', e.metaKey);
+      // Log EVERY keypress for debugging
+      if (e.ctrlKey || e.metaKey) {
+        console.log('🔑 Modifier + Key:', e.key, {
+          ctrl: e.ctrlKey,
+          meta: e.metaKey,
+          shift: e.shiftKey,
+          key: e.key,
+          code: e.code
+        });
+      }
       
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !e.shiftKey) {
+      // Check for Ctrl+V or Cmd+V
+      const isCtrlV = (e.ctrlKey || e.metaKey) && 
+                      (e.key === 'v' || e.key === 'V' || e.code === 'KeyV') &&
+                      !e.shiftKey && 
+                      !e.altKey;
+      
+      if (isCtrlV) {
+        console.log('🎯 CTRL+V DETECTED!');
+        
         const target = e.target as HTMLElement;
         const isEditable = target.tagName === 'INPUT' || 
                           target.tagName === 'TEXTAREA' || 
-                          target.isContentEditable;
+                          target.isContentEditable ||
+                          target.getAttribute('contenteditable') === 'true';
         
-        console.log('🎯 Ctrl+V detected! Editable field:', isEditable);
+        console.log('📍 Target:', target.tagName, 'Editable:', isEditable);
         
         if (!isEditable) {
-          console.log('✅ Not in editable field - triggering voice');
+          console.log('✅ NOT in editable field - TRIGGERING VOICE');
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation();
+          
           setTriggerVoice(prev => {
-            const newValue = !prev;
-            console.log('🔄 Toggling trigger from', prev, 'to', newValue);
+            const newValue = Date.now(); // Use timestamp to ensure it always changes
+            console.log('🚀 TRIGGER VOICE - Previous:', prev, 'New:', newValue);
             return newValue;
           });
         } else {
-          console.log('⏭️ In editable field - allowing paste');
+          console.log('⏭️ In editable field - allowing default paste');
         }
       }
     };
 
-    console.log('🎧 Keyboard listener registered');
-    document.addEventListener('keydown', handleKeyDown, true); // Use capture phase
+    console.log('🎧 Installing Ctrl+V listener');
+    // Use capture phase and highest priority
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    
     return () => {
-      console.log('🎧 Keyboard listener removed');
-      document.removeEventListener('keydown', handleKeyDown, true);
+      console.log('🎧 Removing Ctrl+V listener');
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, []);
 

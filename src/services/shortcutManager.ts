@@ -45,6 +45,12 @@ class ShortcutManager {
                       target.tagName === 'TEXTAREA' || 
                       target.isContentEditable;
 
+    // Skip Ctrl+V entirely - let App.tsx handle it
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
+      console.log('🔇 ShortcutManager: Ignoring Ctrl+V');
+      return;
+    }
+
     const parts = [];
     if (event.ctrlKey || event.metaKey) parts.push('ctrl');
     if (event.shiftKey) parts.push('shift');
@@ -55,13 +61,6 @@ class ShortcutManager {
     const shortcut = this.shortcuts.get(key);
 
     if (shortcut) {
-      // Special handling for Ctrl+V: only intercept when not in editable field
-      if (event.key.toLowerCase() === 'v' && event.ctrlKey && !event.shiftKey) {
-        if (isEditable) {
-          return; // Let browser handle paste
-        }
-      }
-
       event.preventDefault();
       shortcut.handler(event);
     }
