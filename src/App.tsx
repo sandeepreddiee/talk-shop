@@ -99,9 +99,6 @@ const AppContent = () => {
       setShowOnboarding(true);
       // Don't auto-speak on mount - let user interact first
     }
-    
-    // Preload Whisper model on app load for faster first use
-    whisperService.preloadModel().catch(console.error);
   }, []);
 
   // Stop speech on any click
