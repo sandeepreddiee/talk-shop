@@ -28,53 +28,126 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: "alloy",
-        instructions: `You are a helpful shopping assistant for AccessShop, a voice-first e-commerce platform designed for blind users. 
-        
-You can help users:
-- Learn about products (features, price, reviews)
-- Add products to their cart
-- Navigate to different pages (cart, checkout, home, search)
-- Answer shopping questions
-- Provide recommendations
+        instructions: `You are an AI shopping assistant for AccessShop, a voice-first e-commerce platform designed for blind users.
 
-When users ask you to perform actions, use the available tools to help them. Always confirm actions after completing them.
+**Your Complete Capabilities:**
+- Browse, search, filter, and sort products
+- Read product details, reviews, and specs
+- Manage cart (add, remove, update quantities, view contents)
+- Manage wishlist (add, remove, view)
+- Navigate to any page
+- Complete checkout process including address entry and order placement
+- View order history
+- Compare products
+- Recommend products based on preferences
+- Check deals and promotions
+- Adjust user preferences (high contrast, text size)
+- Help with any shopping task
 
-Be conversational, helpful, and concise. Remember this is a voice interface, so keep responses brief and natural.`,
+**Interaction Guidelines:**
+- Be conversational and natural - you're having a voice chat
+- Keep responses concise (1-2 sentences) - this is audio
+- Always confirm actions ("I've added that to your cart")
+- Proactively offer help ("Would you like to checkout now?")
+- Handle errors gracefully ("I couldn't find that product, try another search")
+- Use tools immediately when users request actions
+
+Remember: Users are blind and using voice. Be their eyes and hands.`,
         tools: [
           {
             type: "function",
-            name: "add_to_cart",
-            description: "Add the current product to the user's shopping cart",
+            name: "search_products",
+            description: "Search for products by name, category, or features. Use this when users ask to find or look for something.",
             parameters: {
               type: "object",
               properties: {
-                quantity: {
+                query: {
+                  type: "string",
+                  description: "Search query (e.g., 'wireless headphones', 'laptop', 'gaming')"
+                },
+                category: {
+                  type: "string",
+                  description: "Optional category filter (e.g., 'Electronics', 'Computing', 'Gaming')"
+                }
+              },
+              required: ["query"]
+            }
+          },
+          {
+            type: "function",
+            name: "get_products",
+            description: "Get a list of products with optional filters. Use for browsing, filtering by price/rating, or sorting.",
+            parameters: {
+              type: "object",
+              properties: {
+                category: {
+                  type: "string",
+                  description: "Filter by category"
+                },
+                minPrice: {
                   type: "number",
-                  description: "Number of items to add (default: 1)"
+                  description: "Minimum price filter"
+                },
+                maxPrice: {
+                  type: "number",
+                  description: "Maximum price filter"
+                },
+                minRating: {
+                  type: "number",
+                  description: "Minimum rating filter (0-5)"
+                },
+                sortBy: {
+                  type: "string",
+                  enum: ["price_asc", "price_desc", "rating", "name"],
+                  description: "Sort order"
+                },
+                limit: {
+                  type: "number",
+                  description: "Number of products to return (default: 10)"
+                },
+                onlyDeals: {
+                  type: "boolean",
+                  description: "Show only products with discounts"
                 }
               }
             }
           },
           {
-            type: "function", 
-            name: "navigate",
-            description: "Navigate to a different page in the application",
+            type: "function",
+            name: "get_product_details",
+            description: "Get full details about a specific product by ID or get the current product being viewed",
             parameters: {
               type: "object",
               properties: {
-                page: {
+                productId: {
                   type: "string",
-                  enum: ["home", "cart", "checkout", "search", "wishlist", "orders"],
-                  description: "The page to navigate to"
+                  description: "Product ID (leave empty to get current product)"
                 }
-              },
-              required: ["page"]
+              }
             }
           },
           {
             type: "function",
-            name: "get_product_info",
-            description: "Get detailed information about the current product being viewed",
+            name: "add_to_cart",
+            description: "Add a product to shopping cart. Can specify product by ID or use current product.",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: {
+                  type: "string",
+                  description: "Product ID (leave empty for current product)"
+                },
+                quantity: {
+                  type: "number",
+                  description: "Quantity to add (default: 1)"
+                }
+              }
+            }
+          },
+          {
+            type: "function",
+            name: "view_cart",
+            description: "Get all items in the shopping cart with prices and quantities",
             parameters: {
               type: "object",
               properties: {}
@@ -82,22 +155,151 @@ Be conversational, helpful, and concise. Remember this is a voice interface, so 
           },
           {
             type: "function",
+            name: "update_cart_quantity",
+            description: "Update the quantity of a product in the cart or remove it",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: {
+                  type: "string",
+                  description: "Product ID in cart"
+                },
+                quantity: {
+                  type: "number",
+                  description: "New quantity (use 0 to remove)"
+                }
+              },
+              required: ["productId", "quantity"]
+            }
+          },
+          {
+            type: "function",
+            name: "add_to_wishlist",
+            description: "Add a product to wishlist. Can specify product by ID or use current product.",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: {
+                  type: "string",
+                  description: "Product ID (leave empty for current product)"
+                }
+              }
+            }
+          },
+          {
+            type: "function",
+            name: "remove_from_wishlist",
+            description: "Remove a product from wishlist",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: {
+                  type: "string",
+                  description: "Product ID to remove"
+                }
+              },
+              required: ["productId"]
+            }
+          },
+          {
+            type: "function",
+            name: "view_wishlist",
+            description: "Get all items in the wishlist",
+            parameters: {
+              type: "object",
+              properties: {}
+            }
+          },
+          {
+            type: "function",
+            name: "navigate",
+            description: "Navigate to a specific page or open a product",
+            parameters: {
+              type: "object",
+              properties: {
+                destination: {
+                  type: "string",
+                  enum: ["home", "cart", "checkout", "wishlist", "orders", "account"],
+                  description: "Page to navigate to"
+                },
+                productId: {
+                  type: "string",
+                  description: "Product ID if navigating to a product page"
+                }
+              },
+              required: ["destination"]
+            }
+          },
+          {
+            type: "function",
+            name: "get_reviews",
+            description: "Get customer reviews for a product",
+            parameters: {
+              type: "object",
+              properties: {
+                productId: {
+                  type: "string",
+                  description: "Product ID (leave empty for current product)"
+                },
+                minRating: {
+                  type: "number",
+                  description: "Filter by minimum rating"
+                }
+              }
+            }
+          },
+          {
+            type: "function",
+            name: "compare_products",
+            description: "Compare features and prices of multiple products",
+            parameters: {
+              type: "object",
+              properties: {
+                productIds: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Array of product IDs to compare"
+                }
+              },
+              required: ["productIds"]
+            }
+          },
+          {
+            type: "function",
+            name: "get_recommendations",
+            description: "Get product recommendations based on current product or category",
+            parameters: {
+              type: "object",
+              properties: {
+                category: {
+                  type: "string",
+                  description: "Category for recommendations"
+                },
+                maxPrice: {
+                  type: "number",
+                  description: "Maximum price range"
+                }
+              }
+            }
+          },
+          {
+            type: "function",
             name: "update_shipping_address",
-            description: "Update the shipping address fields on the checkout page. User can provide address, city, and/or ZIP code.",
+            description: "Update shipping address on checkout page",
             parameters: {
               type: "object",
               properties: {
                 address: {
                   type: "string",
-                  description: "Street address (e.g., '123 Main Street')"
+                  description: "Street address"
                 },
                 city: {
                   type: "string",
-                  description: "City name (e.g., 'New York')"
+                  description: "City name"
                 },
                 zipCode: {
                   type: "string",
-                  description: "5-digit ZIP code (e.g., '10001')"
+                  description: "ZIP code"
                 }
               }
             }
@@ -105,10 +307,43 @@ Be conversational, helpful, and concise. Remember this is a voice interface, so 
           {
             type: "function",
             name: "place_order",
-            description: "Submit the checkout form and place the order",
+            description: "Complete the checkout and place the order",
             parameters: {
               type: "object",
               properties: {}
+            }
+          },
+          {
+            type: "function",
+            name: "view_orders",
+            description: "Get user's order history",
+            parameters: {
+              type: "object",
+              properties: {
+                limit: {
+                  type: "number",
+                  description: "Number of recent orders to show (default: 5)"
+                }
+              }
+            }
+          },
+          {
+            type: "function",
+            name: "update_preferences",
+            description: "Update accessibility preferences like contrast and text size",
+            parameters: {
+              type: "object",
+              properties: {
+                highContrast: {
+                  type: "boolean",
+                  description: "Enable/disable high contrast mode"
+                },
+                textSize: {
+                  type: "string",
+                  enum: ["small", "medium", "large", "xl"],
+                  description: "Set text size"
+                }
+              }
             }
           }
         ]
