@@ -36,7 +36,7 @@ export const HelpOverlay = ({ isOpen, onClose }: HelpOverlayProps) => {
           <section>
             <h3 className="font-semibold text-lg mb-3">⚡ Quick Voice Commands (Ctrl+V)</h3>
             <p className="text-sm text-muted-foreground mb-3">
-              Press Ctrl+V to activate command mode for quick actions. Say "stop listening" to end.
+              <strong>Hold Ctrl+V</strong> and speak your command. Release to process. Perfect for quick navigation and actions.
             </p>
             {commandList.map((group) => (
               <div key={group.intent} className="mb-4">
@@ -56,12 +56,8 @@ export const HelpOverlay = ({ isOpen, onClose }: HelpOverlayProps) => {
             <h3 className="font-semibold text-lg mb-3">⌨️ Keyboard Shortcuts</h3>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="font-mono bg-muted px-2 py-1 rounded">Ctrl+V</dt>
-                <dd className="text-muted-foreground">Toggle voice commands (except in text fields)</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-mono bg-muted px-2 py-1 rounded">Ctrl+Shift+V</dt>
-                <dd className="text-muted-foreground">Force toggle voice commands</dd>
+                <dt className="font-mono bg-muted px-2 py-1 rounded">Hold Ctrl+V</dt>
+                <dd className="text-muted-foreground">Push-to-talk voice commands</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="font-mono bg-muted px-2 py-1 rounded">Ctrl+K</dt>
@@ -77,11 +73,12 @@ export const HelpOverlay = ({ isOpen, onClose }: HelpOverlayProps) => {
           <section>
             <h3 className="font-semibold text-lg mb-3">💡 Tips</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• <strong>For natural conversations:</strong> Use the floating mic button</li>
-              <li>• <strong>For quick actions:</strong> Use Ctrl+V and speak a command</li>
+              <li>• <strong>For natural conversations:</strong> Use the floating mic button (bottom-right)</li>
+              <li>• <strong>For quick actions:</strong> Hold Ctrl+V, speak, then release</li>
               <li>• Voice commands work on any page</li>
-              <li>• Say &ldquo;what can I say&rdquo; during Ctrl+V for command list</li>
+              <li>• Say &ldquo;what can I say&rdquo; for command list</li>
               <li>• All features are fully keyboard accessible</li>
+              <li>• <strong>Screen readers:</strong> Click anywhere to stop speech</li>
             </ul>
           </section>
         </div>

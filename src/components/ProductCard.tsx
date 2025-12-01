@@ -15,8 +15,8 @@ export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
   const navigate = useNavigate();
 
   const handleFocus = () => {
-    const description = `${product.name}. Price $${product.price}. Rating ${product.rating} stars with ${product.reviewCount} reviews.`;
-    speechService.speak(description);
+    // Don't auto-speak - let screen readers handle it via aria-label
+    // Only speak if explicitly requested via Quick Listen button
   };
 
   const handleClick = () => {
