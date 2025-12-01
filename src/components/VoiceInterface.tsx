@@ -14,7 +14,7 @@ import { productService } from '@/services/database/productService';
 
 interface VoiceInterfaceProps {
   onSpeakingChange: (speaking: boolean) => void;
-  trigger?: boolean;
+  trigger?: number; // Changed to number (timestamp) to always detect changes
 }
 
 const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange, trigger }) => {
