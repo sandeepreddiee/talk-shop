@@ -8,8 +8,9 @@ import { useVoiceStore } from '@/stores/useVoiceStore';
 import { speechService } from '@/services/speechService';
 import { WishlistButton } from '@/components/WishlistButton';
 import { ProductReviews } from '@/components/ProductReviews';
+import { ProductAssistant } from '@/components/ProductAssistant';
 import { toast } from 'sonner';
-import { ShoppingCart, Zap, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Zap, MessageCircle, Volume2 } from 'lucide-react';
 import { Product } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { activityService } from '@/services/activityService';
@@ -20,8 +21,9 @@ export default function ProductPage() {
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
-  const { setAssistantOpen } = useVoiceStore();
+  const { setAssistantOpen: setGlobalAssistantOpen } = useVoiceStore();
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -93,13 +95,7 @@ export default function ProductPage() {
   };
 
   const handleAskAssistant = () => {
-    // Trigger the global VoiceInterface by simulating Ctrl+V
-    const event = new KeyboardEvent('keydown', {
-      key: 'v',
-      ctrlKey: true,
-      bubbles: true
-    });
-    window.dispatchEvent(event);
+    setAssistantOpen(true);
     activityService.logActivity('open_voice_assistant', { context: 'product', productId: product?.id });
   };
 
@@ -178,19 +174,20 @@ export default function ProductPage() {
             </ul>
           </div>
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <Button 
               onClick={handleListenDescription} 
               variant="outline"
-              className="flex-1"
+              className="w-full"
               aria-label="Listen to product description"
             >
+              <Volume2 className="mr-2 h-4 w-4" />
               Listen to Description
             </Button>
             <Button 
               onClick={handleAskAssistant}
               variant="outline"
-              className="flex-1"
+              className="w-full"
               aria-label="Ask assistant about this product"
             >
               <MessageCircle className="mr-2 h-4 w-4" />
@@ -198,11 +195,11 @@ export default function ProductPage() {
             </Button>
           </div>
           
-          <div>
+          <div className="grid grid-cols-2 gap-3">
             <Button 
               onClick={handleAddToCart} 
               size="lg" 
-              className="flex-1"
+              className="w-full bg-[hsl(var(--deal-badge))] hover:bg-[hsl(var(--deal-badge))]/90 text-white"
               disabled={!product.inStock}
               aria-label={product.inStock ? "Add to cart" : "Out of stock"}
             >
@@ -212,8 +209,8 @@ export default function ProductPage() {
             <Button 
               onClick={handleBuyNow} 
               size="lg" 
-              variant="secondary" 
-              className="flex-1"
+              variant="outline" 
+              className="w-full"
               disabled={!product.inStock}
               aria-label={product.inStock ? "Buy now" : "Out of stock"}
             >
@@ -238,6 +235,14 @@ export default function ProductPage() {
       </div>
 
       <ProductReviews productId={product.id} />
+      
+      {product && (
+        <ProductAssistant 
+          product={product} 
+          open={assistantOpen} 
+          onOpenChange={setAssistantOpen}
+        />
+      )}
     </main>
   );
 }
