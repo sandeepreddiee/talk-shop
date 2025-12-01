@@ -57,8 +57,12 @@ class WhisperService {
         
         this.mediaRecorder.start();
         this.isRecording = true;
-        console.log('✅ Recording started');
-        resolve();
+        
+        // Small delay to ensure recording is fully initialized before user speaks
+        setTimeout(() => {
+          console.log('✅ Recording started and ready');
+          resolve();
+        }, 300);
       } catch (error) {
         console.error('❌ Failed to start recording:', error);
         reject(error);
