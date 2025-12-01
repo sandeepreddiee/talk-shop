@@ -856,8 +856,16 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange, trigg
     }
   }, [trigger]);
 
-  // No visible UI - controlled only via Ctrl+V and Ask Assistant button
-  return null;
+  // No visible floating button - show status overlay when active
+  return isConnected ? (
+    <div className="fixed top-4 right-4 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+      <div className={`h-2 w-2 rounded-full bg-white ${userSpeaking ? 'animate-pulse' : ''}`} />
+      <span className="text-sm font-medium">
+        {userSpeaking ? 'Listening...' : 'Voice Active'}
+      </span>
+      <span className="text-xs opacity-75">Say "stop listening"</span>
+    </div>
+  ) : null;
 };
 
 export default VoiceInterface;

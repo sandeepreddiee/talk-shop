@@ -116,26 +116,37 @@ const AppContent = () => {
   // Direct Ctrl+V handler (bypass shortcutManager)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      console.log('⌨️ Key pressed:', e.key, 'Ctrl:', e.ctrlKey, 'Meta:', e.metaKey);
+      
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !e.shiftKey) {
         const target = e.target as HTMLElement;
         const isEditable = target.tagName === 'INPUT' || 
                           target.tagName === 'TEXTAREA' || 
                           target.isContentEditable;
         
+        console.log('🎯 Ctrl+V detected! Editable field:', isEditable);
+        
         if (!isEditable) {
-          console.log('🎤 Ctrl+V detected - triggering voice');
+          console.log('✅ Not in editable field - triggering voice');
           e.preventDefault();
           e.stopPropagation();
           setTriggerVoice(prev => {
-            console.log('🔄 Toggling trigger from', prev, 'to', !prev);
-            return !prev;
+            const newValue = !prev;
+            console.log('🔄 Toggling trigger from', prev, 'to', newValue);
+            return newValue;
           });
+        } else {
+          console.log('⏭️ In editable field - allowing paste');
         }
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    console.log('🎧 Keyboard listener registered');
+    document.addEventListener('keydown', handleKeyDown, true); // Use capture phase
+    return () => {
+      console.log('🎧 Keyboard listener removed');
+      document.removeEventListener('keydown', handleKeyDown, true);
+    };
   }, []);
 
   useEffect(() => {
