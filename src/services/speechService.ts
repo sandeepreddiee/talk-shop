@@ -16,6 +16,8 @@ class SpeechService {
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
       this.recognition.lang = "en-US";
+      // Increase sensitivity for better speech detection
+      this.recognition.maxAlternatives = 3; // More alternatives for better recognition
     }
   }
 
@@ -241,17 +243,18 @@ class SpeechService {
         console.error('Full error event:', event);
         
         if (event.error === 'no-speech') {
-          console.log('⚠️ No speech detected');
+          console.log('⚠️ No speech detected - try speaking louder or closer to microphone');
         } else if (event.error === 'audio-capture') {
-          console.error('❌ Microphone not accessible');
+          console.error('❌ Microphone not accessible - check system settings');
         } else if (event.error === 'not-allowed') {
           console.error('❌ Microphone permission denied');
         }
         
-        // Only stop on serious errors
+        // Don't stop on no-speech errors, just continue listening
         if (event.error === 'not-allowed' || event.error === 'audio-capture') {
           this.isListening = false;
         }
+        // For no-speech, keep listening and let it auto-restart
       };
 
       this.recognition.onend = () => {
