@@ -160,64 +160,111 @@ class SpeechService {
   startPushToTalk(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.recognition) {
+        console.error('❌ Speech recognition not supported in this browser');
         reject(new Error('Speech recognition not supported'));
         return;
       }
 
       // Stop any existing recognition
       if (this.isListening) {
+        console.log('⚠️ Already listening, stopping first');
         try {
           this.recognition.stop();
         } catch (_) {}
+        // Wait a bit before restarting
+        setTimeout(() => this.startPushToTalk(), 100);
+        return;
       }
 
+      console.log('🎤 Initializing push-to-talk...');
+      
       this.recognition.continuous = true;
-      this.recognition.interimResults = false; // Only final results
+      this.recognition.interimResults = true; // Need interim to see what's captured
+      this.recognition.maxAlternatives = 1;
       this.isListening = true;
       this.pushToTalkTranscript = "";
 
+      let lastFinalIndex = 0;
+
+      this.recognition.onstart = () => {
+        console.log('✅ Recognition STARTED successfully');
+      };
+
       this.recognition.onresult = (event: any) => {
-        let fullTranscript = "";
-        // Collect all final results
-        for (let i = 0; i < event.results.length; i++) {
+        console.log('📢 onresult event fired, results length:', event.results.length);
+        
+        // Process results from where we left off
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
+          const transcript = result[0].transcript;
+          
+          console.log(`📝 Result [${i}] - isFinal: ${result.isFinal}, text: "${transcript}"`);
+          
           if (result.isFinal) {
-            fullTranscript += result[0].transcript + " ";
-            console.log(`✅ Final result [${i}]:`, result[0].transcript);
+            // Append final results
+            this.pushToTalkTranscript += transcript + " ";
+            lastFinalIndex = i;
+            console.log('✅ FINAL result captured. Full transcript:', this.pushToTalkTranscript);
+          } else {
+            console.log('⏳ Interim result:', transcript);
           }
-        }
-        if (fullTranscript) {
-          this.pushToTalkTranscript = fullTranscript.trim();
-          console.log('📝 Updated transcript:', this.pushToTalkTranscript);
         }
       };
 
+      this.recognition.onaudiostart = () => {
+        console.log('🎙️ Audio capture started');
+      };
+
+      this.recognition.onaudioend = () => {
+        console.log('🎙️ Audio capture ended');
+      };
+
+      this.recognition.onspeechstart = () => {
+        console.log('🗣️ Speech detected!');
+      };
+
+      this.recognition.onspeechend = () => {
+        console.log('🗣️ Speech ended');
+      };
+
       this.recognition.onerror = (event: any) => {
-        console.error('❌ Speech error:', event.error);
-        // Don't reject on no-speech errors, just continue
-        if (event.error !== 'no-speech') {
+        console.error('❌ Speech recognition error:', event.error);
+        console.error('Full error event:', event);
+        
+        if (event.error === 'no-speech') {
+          console.log('⚠️ No speech detected');
+        } else if (event.error === 'audio-capture') {
+          console.error('❌ Microphone not accessible');
+        } else if (event.error === 'not-allowed') {
+          console.error('❌ Microphone permission denied');
+        }
+        
+        // Only stop on serious errors
+        if (event.error === 'not-allowed' || event.error === 'audio-capture') {
           this.isListening = false;
         }
       };
 
       this.recognition.onend = () => {
-        console.log('🔄 Recognition ended, listening:', this.isListening);
+        console.log('🔄 Recognition ended. isListening:', this.isListening, 'transcript so far:', this.pushToTalkTranscript);
+        
         if (this.isListening) {
           // Auto-restart if still in push-to-talk mode
+          console.log('🔄 Auto-restarting...');
           try {
             this.recognition.start();
-            console.log('🔄 Auto-restarted recognition');
           } catch (e) {
-            console.log('⚠️ Could not restart:', e);
+            console.error('❌ Could not restart:', e);
           }
         }
       };
 
       try {
         this.recognition.start();
-        console.log('🎤 Recognition started');
+        console.log('🚀 Called recognition.start()');
         resolve();
       } catch (error) {
+        console.error('❌ Failed to start recognition:', error);
         this.isListening = false;
         reject(error);
       }
@@ -226,32 +273,44 @@ class SpeechService {
 
   stopPushToTalk(): Promise<string> {
     return new Promise((resolve) => {
+      console.log('🛑 stopPushToTalk called');
+      
       if (!this.recognition) {
-        console.log('⚠️ No recognition available');
+        console.error('❌ No recognition object');
         resolve("");
         return;
       }
 
       if (!this.isListening) {
-        console.log('⚠️ Not listening');
+        console.log('⚠️ Not currently listening');
         resolve("");
         return;
       }
 
       this.isListening = false;
-      console.log('🛑 Stopping, current:', this.pushToTalkTranscript);
+      console.log('📝 Current transcript before stopping:', this.pushToTalkTranscript);
       
-      // Wait longer to ensure final results are captured
+      // Give time for any final results to come through
       setTimeout(() => {
+        console.log('⏰ Delay complete, stopping recognition');
+        
         try {
           this.recognition.stop();
-        } catch (_) {}
+          console.log('✅ Recognition stopped');
+        } catch (e) {
+          console.error('❌ Error stopping recognition:', e);
+        }
         
-        const transcript = this.pushToTalkTranscript.trim();
-        console.log('✅ Returning transcript:', transcript);
-        this.pushToTalkTranscript = "";
-        resolve(transcript);
-      }, 500); // Longer delay for Chrome to process final results
+        // Wait a bit more for onresult to fire with final results
+        setTimeout(() => {
+          const transcript = this.pushToTalkTranscript.trim();
+          console.log('📤 Returning final transcript:', transcript);
+          console.log('📏 Transcript length:', transcript.length);
+          
+          this.pushToTalkTranscript = "";
+          resolve(transcript);
+        }, 300);
+      }, 200);
     });
   }
 
