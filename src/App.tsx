@@ -118,6 +118,7 @@ const AppContent = () => {
   // CRITICAL: Ctrl+V Hold-to-Talk handler
   useEffect(() => {
     const commandHandler = new VoiceCommandHandler(navigate, location, toast);
+    const { setListening, setCurrentTranscript } = useVoiceStore.getState();
     
     const handleKeyDown = async (e: KeyboardEvent) => {
       const isCtrlV = (e.ctrlKey || e.metaKey) && 
@@ -139,13 +140,19 @@ const AppContent = () => {
           
           console.log('🎤 START LISTENING (Ctrl+V pressed)');
           setIsListening(true);
+          setListening(true);
+          setCurrentTranscript('');
           
           try {
-            await speechService.startPushToTalk();
+            await speechService.startPushToTalk((interimText) => {
+              // Update live transcript in real-time
+              setCurrentTranscript(interimText);
+            });
             speechService.speak('Listening');
           } catch (error) {
             console.error('❌ Failed to start listening:', error);
             setIsListening(false);
+            setListening(false);
             toast({
               title: "Microphone Error",
               description: "Could not access microphone. Please check permissions.",
@@ -162,9 +169,11 @@ const AppContent = () => {
       if (isListening && isCtrlV) {
         console.log('🛑 STOP LISTENING (Ctrl+V released)');
         setIsListening(false);
+        setListening(false);
         
         try {
           const transcript = await speechService.stopPushToTalk();
+          setCurrentTranscript('');
           console.log('📝 Transcript:', transcript);
           
           if (transcript && transcript.length > 0) {
