@@ -56,9 +56,16 @@ export const WishlistButton = ({
   return (
     <Button
       onClick={handleToggle}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleToggle();
+        }
+      }}
       size={size}
       variant={variant}
       disabled={isLoading}
+      tabIndex={0}
       aria-label={isInList ? 'Remove from wishlist' : 'Add to wishlist'}
       className="gap-2"
     >

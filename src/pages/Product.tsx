@@ -176,9 +176,16 @@ export default function ProductPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Button 
-              onClick={handleListenDescription} 
+              onClick={handleListenDescription}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleListenDescription();
+                }
+              }}
               variant="outline"
               className="w-full"
+              tabIndex={0}
               aria-label="Listen to product description"
             >
               <Volume2 className="mr-2 h-4 w-4" />
@@ -186,8 +193,15 @@ export default function ProductPage() {
             </Button>
             <Button 
               onClick={handleAskAssistant}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleAskAssistant();
+                }
+              }}
               variant="outline"
               className="w-full"
+              tabIndex={0}
               aria-label="Ask assistant about this product"
             >
               <MessageCircle className="mr-2 h-4 w-4" />
@@ -197,21 +211,35 @@ export default function ProductPage() {
           
           <div className="grid grid-cols-2 gap-3">
             <Button 
-              onClick={handleAddToCart} 
+              onClick={handleAddToCart}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleAddToCart();
+                }
+              }}
               size="lg" 
               className="w-full bg-[hsl(var(--deal-badge))] hover:bg-[hsl(var(--deal-badge))]/90 text-white"
               disabled={!product.inStock}
+              tabIndex={0}
               aria-label={product.inStock ? "Add to cart" : "Out of stock"}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
               {product.inStock ? 'Add to Cart' : 'Out of Stock'}
             </Button>
             <Button 
-              onClick={handleBuyNow} 
+              onClick={handleBuyNow}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleBuyNow();
+                }
+              }}
               size="lg" 
               variant="outline" 
               className="w-full"
               disabled={!product.inStock}
+              tabIndex={0}
               aria-label={product.inStock ? "Buy now" : "Out of stock"}
             >
               <Zap className="mr-2 h-5 w-5" />

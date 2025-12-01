@@ -171,7 +171,19 @@ export default function Cart() {
       </div>
       <div className="mt-8 border-t pt-4">
         <div className="text-2xl font-bold mb-4">Total: ${total.toFixed(2)}</div>
-        <Button size="lg" onClick={handleCheckout} className="w-full">
+        <Button 
+          size="lg" 
+          onClick={handleCheckout} 
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCheckout();
+            }
+          }}
+          className="w-full"
+          tabIndex={0}
+          aria-label="Proceed to checkout"
+        >
           Proceed to Checkout
         </Button>
         <div className="text-sm text-muted-foreground mt-4 space-y-1">
