@@ -177,8 +177,12 @@ class SpeechService {
       this.recognition.onresult = (event: any) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
+          const transcript = result[0].transcript;
+          console.log(`🎤 Speech result [${i}] - Final: ${result.isFinal}, Text: "${transcript}"`);
+          
           if (result.isFinal) {
-            this.pushToTalkTranscript += " " + result[0].transcript;
+            this.pushToTalkTranscript += " " + transcript;
+            console.log('✅ Added to transcript:', this.pushToTalkTranscript);
           }
         }
       };
@@ -209,11 +213,14 @@ class SpeechService {
   stopPushToTalk(): Promise<string> {
     return new Promise((resolve) => {
       if (!this.recognition || !this.isListening) {
+        console.log('⚠️ Not listening, returning empty transcript');
         resolve("");
         return;
       }
 
       this.isListening = false;
+      
+      console.log('🛑 Stopping push-to-talk, current transcript:', this.pushToTalkTranscript);
       
       // Give a small delay to capture final results
       setTimeout(() => {
@@ -222,9 +229,10 @@ class SpeechService {
         } catch (_) {}
         
         const transcript = this.pushToTalkTranscript.trim();
+        console.log('✅ Final transcript:', transcript);
         this.pushToTalkTranscript = "";
         resolve(transcript);
-      }, 100);
+      }, 300); // Increased delay to capture final results
     });
   }
 

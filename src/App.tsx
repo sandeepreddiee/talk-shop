@@ -136,13 +136,19 @@ const AppContent = () => {
       const transcript = await speechService.stopPushToTalk();
       setListening(false);
       
+      console.log('🎤 Raw transcript captured:', transcript);
+      
       if (!transcript || transcript.trim() === '') {
-        setLiveMessage('');
+        setLiveMessage('No speech detected');
+        await speechService.speak('I didn\'t hear anything. Please try again.');
         return;
       }
       
       console.log('Voice command received:', transcript);
       const command = voiceCommandParser.parse(transcript);
+      
+      console.log('Parsed command:', command);
+      
       if (command) {
         setLiveMessage(`Executing: ${transcript}`);
         await executeCommand(command);
