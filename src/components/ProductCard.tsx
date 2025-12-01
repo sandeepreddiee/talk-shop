@@ -5,14 +5,16 @@ import { Volume2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { speechService } from '@/services/speechService';
+import { forwardRef } from 'react';
 
 interface ProductCardProps {
   product: Product;
   onQuickListen?: () => void;
 }
 
-export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
-  const navigate = useNavigate();
+export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
+  ({ product, onQuickListen }, ref) => {
+    const navigate = useNavigate();
 
   const handleFocus = () => {
     // Speak product info when tabbing through products
@@ -41,6 +43,7 @@ export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
 
   return (
     <Card
+      ref={ref}
       className="group cursor-pointer hover:shadow-xl transition-all duration-200 border-border focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 bg-card relative"
       onClick={handleClick}
       onKeyPress={handleKeyPress}
@@ -106,4 +109,6 @@ export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
       </div>
     </Card>
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';
