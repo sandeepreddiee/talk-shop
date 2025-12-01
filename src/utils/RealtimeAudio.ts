@@ -235,8 +235,18 @@ export class RealtimeChat {
               }
             }
           },
+          lookup_city_by_zip: {
+            description: "Look up city name based on ZIP code",
+            parameters: {
+              type: "object",
+              properties: {
+                zipCode: { type: "string", description: "5-digit ZIP code" }
+              },
+              required: ["zipCode"]
+            }
+          },
           update_shipping_address: {
-            description: "Update shipping address fields during checkout. Extract address from user speech.",
+            description: "Update shipping address fields during checkout",
             parameters: {
               type: "object",
               properties: {
@@ -297,20 +307,35 @@ export class RealtimeChat {
           
 ${pageContext}
 
-CRITICAL ADDRESS EXTRACTION RULES:
-- When a user speaks their address, listen VERY carefully and extract the EXACT words they say
-- For street address: extract the full street address including number and street name (e.g., "123 Main Street", "456 Oak Avenue")
-- For city: extract the exact city name they speak (e.g., "New York", "Los Angeles", "Chicago")
-- For ZIP code: extract the exact 5-digit number they say (e.g., "10001", "90210")
-- Do NOT make up or generate random addresses - use ONLY what the user actually speaks
-- If you're unsure about any part, ask the user to repeat it before calling the function
+SMART ADDRESS COLLECTION WORKFLOW (IMPORTANT):
+When collecting shipping address on the checkout page, follow this EXACT workflow:
 
-Example: If user says "My address is 123 Main Street, New York, 10001", you should extract:
-- address: "123 Main Street"
-- city: "New York"
-- zipCode: "10001"
+1. FIRST: Ask for street address
+   - Example: "What's your street address?"
+   - Extract the EXACT address they speak (e.g., "123 Main Street")
+   - Do NOT proceed until you have the street address
 
-When users are on the checkout page and provide their address, immediately call update_shipping_address with the EXACT address components they spoke. Do NOT navigate them away from checkout if they're already there.`,
+2. SECOND: Ask for ZIP code
+   - Example: "What's your ZIP code?"
+   - Extract the EXACT 5-digit ZIP code they speak (e.g., "10001")
+   
+3. THIRD: Automatically lookup the city
+   - Immediately call lookup_city_by_zip with the ZIP code
+   - Wait for the city result
+   - Confirm with the user: "I found [City], [State]. Is that correct?"
+
+4. FINALLY: Update all fields together
+   - Once user confirms the city is correct, call update_shipping_address with all three fields:
+     - address: the street address they gave you
+     - city: the city from the ZIP lookup
+     - zipCode: the ZIP code they gave you
+
+CRITICAL RULES:
+- Do NOT ask the user for the city - ALWAYS look it up automatically from the ZIP code
+- Do NOT make up or generate random addresses - use ONLY what they speak
+- Follow this workflow step-by-step, in order
+- If ZIP lookup fails, then ask the user for their city
+- If user provides all three at once, verify the city matches the ZIP before updating`,
           voice: "alloy",
           input_audio_format: "pcm16",
           output_audio_format: "pcm16",
