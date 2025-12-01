@@ -52,6 +52,13 @@ serve(async (req) => {
 - Handle errors gracefully ("I couldn't find that product, try another search")
 - Use tools immediately when users request actions
 
+**Address Entry (IMPORTANT):**
+When users provide shipping information, carefully extract:
+- Full street address with numbers (e.g., "123 Main Street")
+- City name (e.g., "New York")
+- ZIP code (e.g., "10001")
+Call update_shipping_address with the extracted fields. Users may provide all at once or one field at a time.
+
 Remember: Users are blind and using voice. Be their eyes and hands.`,
         tools: [
           {
@@ -289,21 +296,21 @@ Remember: Users are blind and using voice. Be their eyes and hands.`,
           {
             type: "function",
             name: "update_shipping_address",
-            description: "Update shipping address on checkout page",
+            description: "Update shipping address fields during checkout. Extract address components from user's speech. Examples: 'My address is 123 Main Street' -> address='123 Main Street', 'I live in New York' -> city='New York', 'zip code is 10001' -> zipCode='10001'. Can update all fields at once or individually.",
             parameters: {
               type: "object",
               properties: {
                 address: {
                   type: "string",
-                  description: "Street address"
+                  description: "Street address including house/apt number and street name (e.g., '123 Main Street', '456 Oak Avenue Apt 2B')"
                 },
                 city: {
                   type: "string",
-                  description: "City name"
+                  description: "City name (e.g., 'New York', 'Los Angeles', 'Chicago')"
                 },
                 zipCode: {
                   type: "string",
-                  description: "ZIP code"
+                  description: "ZIP or postal code (e.g., '10001', '90210')"
                 }
               }
             }

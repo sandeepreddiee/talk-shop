@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCartStore } from '@/stores/useCartStore';
 import { useWishlistStore } from '@/stores/useWishlistStore';
 import { useVoiceStore } from '@/stores/useVoiceStore';
+import { useCheckoutStore } from '@/stores/useCheckoutStore';
 import { supabase } from '@/integrations/supabase/client';
 import { speechService } from '@/services/speechService';
 import { productService } from '@/services/database/productService';
@@ -654,36 +655,68 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     },
     
     update_shipping_address: async (args: { address?: string; city?: string; zipCode?: string }) => {
-      console.log('📮 Updating address:', args);
+      console.log('📮 Updating shipping address:', args);
       try {
+        // Validate we're on checkout page
         if (!location.pathname.includes('/checkout')) {
-          return { success: false, message: "Not on checkout page. Navigate to checkout first." };
+          console.warn('Not on checkout page');
+          navigate('/checkout');
+          return { success: false, message: "Navigating to checkout. Please try updating the address again." };
         }
         
-        const { useCheckoutStore } = await import('@/stores/useCheckoutStore');
-        const store = useCheckoutStore.getState();
+        // Get checkout store
+        const checkoutStore = useCheckoutStore.getState();
+        console.log('Current checkout state:', {
+          address: checkoutStore.address,
+          city: checkoutStore.city,
+          zipCode: checkoutStore.zipCode
+        });
         
-        if (args.address) store.setAddress(args.address);
-        if (args.city) store.setCity(args.city);
-        if (args.zipCode) store.setZipCode(args.zipCode);
+        // Update fields
+        const updatedFields: string[] = [];
         
-        const fields = [];
-        if (args.address) fields.push('address');
-        if (args.city) fields.push('city');
-        if (args.zipCode) fields.push('ZIP code');
+        if (args.address) {
+          console.log('Setting address to:', args.address);
+          checkoutStore.setAddress(args.address);
+          updatedFields.push('address');
+        }
+        
+        if (args.city) {
+          console.log('Setting city to:', args.city);
+          checkoutStore.setCity(args.city);
+          updatedFields.push('city');
+        }
+        
+        if (args.zipCode) {
+          console.log('Setting zip code to:', args.zipCode);
+          checkoutStore.setZipCode(args.zipCode);
+          updatedFields.push('zip code');
+        }
+        
+        if (updatedFields.length === 0) {
+          return { success: false, message: "No address fields provided" };
+        }
+        
+        // Verify update
+        const newState = useCheckoutStore.getState();
+        console.log('New checkout state:', {
+          address: newState.address,
+          city: newState.city,
+          zipCode: newState.zipCode
+        });
         
         toast({
-          title: "Address updated",
-          description: fields.join(', '),
+          title: "✅ Address Updated",
+          description: `Updated: ${updatedFields.join(', ')}`,
         });
         
         return { 
           success: true, 
-          message: `Updated ${fields.join(', ')}` 
+          message: `Successfully updated ${updatedFields.join(', ')}. Current address: ${newState.address || 'not set'}, ${newState.city || 'not set'}, ${newState.zipCode || 'not set'}`
         };
       } catch (error) {
-        console.error('Update address error:', error);
-        return { success: false, message: "Failed to update address" };
+        console.error('❌ Update address error:', error);
+        return { success: false, message: `Failed to update address: ${error instanceof Error ? error.message : 'Unknown error'}` };
       }
     },
     
