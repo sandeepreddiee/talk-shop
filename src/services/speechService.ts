@@ -168,7 +168,7 @@ class SpeechService {
   // -----------------------
   // PUSH-TO-TALK (Hold Ctrl+V)
   // -----------------------
-  startPushToTalk(): Promise<void> {
+  startPushToTalk(onInterimResult?: (text: string) => void): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.recognition) {
         console.error('❌ Speech recognition not supported in this browser');
@@ -183,7 +183,7 @@ class SpeechService {
           this.recognition.stop();
         } catch (_) {}
         // Wait a bit before restarting
-        setTimeout(() => this.startPushToTalk(), 100);
+        setTimeout(() => this.startPushToTalk(onInterimResult), 100);
         return;
       }
 
@@ -204,6 +204,8 @@ class SpeechService {
       this.recognition.onresult = (event: any) => {
         console.log('📢 onresult event fired, results length:', event.results.length);
         
+        let currentInterimText = "";
+        
         // Process results from where we left off
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
@@ -217,8 +219,16 @@ class SpeechService {
             lastFinalIndex = i;
             console.log('✅ FINAL result captured. Full transcript:', this.pushToTalkTranscript);
           } else {
+            // Collect interim results
+            currentInterimText += transcript + " ";
             console.log('⏳ Interim result:', transcript);
           }
+        }
+        
+        // Call callback with full transcript (final + current interim)
+        if (onInterimResult) {
+          const fullText = this.pushToTalkTranscript + currentInterimText;
+          onInterimResult(fullText.trim());
         }
       };
 
