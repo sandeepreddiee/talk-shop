@@ -274,11 +274,32 @@ export class RealtimeChat {
         };
       });
 
+      // Get current page info
+      const currentPath = window.location.pathname;
+      let pageContext = "";
+      if (currentPath.includes('/checkout')) {
+        pageContext = "The user is currently on the checkout page ready to complete their order.";
+      } else if (currentPath.includes('/cart')) {
+        pageContext = "The user is currently viewing their shopping cart.";
+      } else if (currentPath.includes('/product/')) {
+        pageContext = "The user is currently viewing a product detail page.";
+      } else if (currentPath === '/') {
+        pageContext = "The user is currently on the home page.";
+      } else if (currentPath.includes('/s/')) {
+        pageContext = "The user is currently viewing search results.";
+      }
+
       this.dc!.send(JSON.stringify({
         type: 'session.update',
         session: {
           modalities: ["text", "audio"],
-          instructions: "You are a helpful shopping assistant for AccessShop, an accessible e-commerce platform. Help users find products, manage their cart, and complete purchases. When users ask to update their address, extract the address components and call update_shipping_address. Be conversational and friendly.",
+          instructions: `You are a helpful shopping assistant for AccessShop, an accessible e-commerce platform. Help users find products, manage their cart, and complete purchases.
+          
+${pageContext}
+
+IMPORTANT: When users ask to update their address while on the checkout page, extract the address components (street address, city, ZIP code) from their speech and immediately call update_shipping_address. Do NOT tell them to navigate to checkout if they're already there.
+
+Be conversational, friendly, and context-aware. If a user is already on the checkout page and asks about their address, help them update it right away.`,
           voice: "alloy",
           input_audio_format: "pcm16",
           output_audio_format: "pcm16",

@@ -692,17 +692,11 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     
     update_shipping_address: async (args: { address?: string; city?: string; zipCode?: string }) => {
       console.log('📮 Updating shipping address:', args);
+      console.log('📮 Current page:', location.pathname);
       try {
-        // Validate we're on checkout page
-        if (!location.pathname.includes('/checkout')) {
-          console.warn('Not on checkout page');
-          navigate('/checkout');
-          return { success: false, message: "Navigating to checkout. Please try updating the address again." };
-        }
-        
         // Get checkout store
         const checkoutStore = useCheckoutStore.getState();
-        console.log('Current checkout state:', {
+        console.log('📮 Current checkout state:', {
           address: checkoutStore.address,
           city: checkoutStore.city,
           zipCode: checkoutStore.zipCode
@@ -712,42 +706,42 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
         const updatedFields: string[] = [];
         
         if (args.address) {
-          console.log('Setting address to:', args.address);
+          console.log('📮 Setting address to:', args.address);
           checkoutStore.setAddress(args.address);
-          updatedFields.push('address');
+          updatedFields.push('street address');
         }
         
         if (args.city) {
-          console.log('Setting city to:', args.city);
+          console.log('📮 Setting city to:', args.city);
           checkoutStore.setCity(args.city);
           updatedFields.push('city');
         }
         
         if (args.zipCode) {
-          console.log('Setting zip code to:', args.zipCode);
+          console.log('📮 Setting zip code to:', args.zipCode);
           checkoutStore.setZipCode(args.zipCode);
-          updatedFields.push('zip code');
+          updatedFields.push('ZIP code');
         }
         
         if (updatedFields.length === 0) {
-          return { success: false, message: "No address fields provided" };
+          return { success: false, message: "Please tell me the address details you'd like to update." };
         }
         
         // Verify update
         const newState = useCheckoutStore.getState();
-        console.log('New checkout state:', {
+        console.log('📮 Updated checkout state:', {
           address: newState.address,
           city: newState.city,
           zipCode: newState.zipCode
         });
         
         toast({
-          title: "✅ Address Updated",
+          title: "Address Updated",
           description: `Updated: ${updatedFields.join(', ')}`,
         });
         
         return { 
-          success: true, 
+          success: true,
           message: `Successfully updated ${updatedFields.join(', ')}. Current address: ${newState.address || 'not set'}, ${newState.city || 'not set'}, ${newState.zipCode || 'not set'}`
         };
       } catch (error) {
