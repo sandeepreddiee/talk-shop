@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { productService } from '@/services/database/productService';
 import { Button } from '@/components/ui/button';
 import { RatingStars } from '@/components/RatingStars';
@@ -24,6 +24,13 @@ export default function ProductPage() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const { setAssistantOpen: setGlobalAssistantOpen } = useVoiceStore();
+  
+  // Refs for Tab navigation through buttons
+  const listenBtnRef = useRef<HTMLButtonElement>(null);
+  const assistantBtnRef = useRef<HTMLButtonElement>(null);
+  const addToCartBtnRef = useRef<HTMLButtonElement>(null);
+  const buyNowBtnRef = useRef<HTMLButtonElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -50,6 +57,32 @@ export default function ProductPage() {
 
     loadProduct();
   }, [id]);
+
+  // Tab navigation handler - cycle through product buttons only
+  useEffect(() => {
+    const buttonRefs = [listenBtnRef, assistantBtnRef, addToCartBtnRef, buyNowBtnRef];
+    
+    const handleTabNavigation = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        
+        let nextIndex: number;
+        if (e.shiftKey) {
+          // Shift+Tab: go backward
+          nextIndex = focusedIndex === 0 ? buttonRefs.length - 1 : focusedIndex - 1;
+        } else {
+          // Tab: go forward
+          nextIndex = (focusedIndex + 1) % buttonRefs.length;
+        }
+        
+        setFocusedIndex(nextIndex);
+        buttonRefs[nextIndex].current?.focus();
+      }
+    };
+    
+    document.addEventListener('keydown', handleTabNavigation);
+    return () => document.removeEventListener('keydown', handleTabNavigation);
+  }, [focusedIndex]);
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -176,6 +209,7 @@ export default function ProductPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Button 
+              ref={listenBtnRef}
               onClick={handleListenDescription}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -185,13 +219,14 @@ export default function ProductPage() {
               }}
               variant="outline"
               className="w-full"
-              tabIndex={0}
+              tabIndex={-1}
               aria-label="Listen to product description"
             >
               <Volume2 className="mr-2 h-4 w-4" />
               Listen to Description
             </Button>
             <Button 
+              ref={assistantBtnRef}
               onClick={handleAskAssistant}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -201,7 +236,7 @@ export default function ProductPage() {
               }}
               variant="outline"
               className="w-full"
-              tabIndex={0}
+              tabIndex={-1}
               aria-label="Ask assistant about this product"
             >
               <MessageCircle className="mr-2 h-4 w-4" />
@@ -211,6 +246,7 @@ export default function ProductPage() {
           
           <div className="grid grid-cols-2 gap-3">
             <Button 
+              ref={addToCartBtnRef}
               onClick={handleAddToCart}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -221,13 +257,14 @@ export default function ProductPage() {
               size="lg" 
               className="w-full bg-[hsl(var(--deal-badge))] hover:bg-[hsl(var(--deal-badge))]/90 text-white"
               disabled={!product.inStock}
-              tabIndex={0}
+              tabIndex={-1}
               aria-label={product.inStock ? "Add to cart" : "Out of stock"}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
               {product.inStock ? 'Add to Cart' : 'Out of Stock'}
             </Button>
             <Button 
+              ref={buyNowBtnRef}
               onClick={handleBuyNow}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -239,7 +276,7 @@ export default function ProductPage() {
               variant="outline" 
               className="w-full"
               disabled={!product.inStock}
-              tabIndex={0}
+              tabIndex={-1}
               aria-label={product.inStock ? "Buy now" : "Out of stock"}
             >
               <Zap className="mr-2 h-5 w-5" />
