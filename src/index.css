@@ -41,6 +41,8 @@ All colors MUST be HSL.
     --header-bg: 210 22% 12%;
     --header-hover: 210 15% 20%;
     
+    --deals-bg: 22 100% 52%;
+    
     --deal-badge: 0 100% 45%;
     --deal-text: 0 0% 100%;
     
@@ -88,6 +90,8 @@ All colors MUST be HSL.
     
     --header-bg: 210 22% 12%;
     --header-hover: 210 15% 20%;
+    
+    --deals-bg: 22 100% 52%;
     
     --deal-badge: 0 100% 45%;
     --deal-text: 0 0% 100%;

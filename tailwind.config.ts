@@ -61,6 +61,9 @@ export default {
           bg: "hsl(var(--header-bg))",
           hover: "hsl(var(--header-hover))",
         },
+        deals: {
+          bg: "hsl(var(--deals-bg))",
+        },
         deal: {
           badge: "hsl(var(--deal-badge))",
           text: "hsl(var(--deal-text))",
