@@ -33,10 +33,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     if (event.type === 'session.created') {
       console.log('✅ Session ready');
       speechService.stopSpeaking();
-      toast({
-        title: "Connected",
-        description: "AI assistant ready - start speaking!",
-      });
+      // Don't show toast - reduces notification spam
     } else if (event.type === 'response.audio.delta') {
       speechService.stopSpeaking();
       setAISpeaking(true);
@@ -835,11 +832,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
     setUserSpeaking(false);
     setAISpeaking(false);
     onSpeakingChange(false);
-    
-    toast({
-      title: "Disconnected",
-      description: "AI assistant ended",
-    });
+    // Don't show toast - reduces notification spam
   };
 
   useEffect(() => {

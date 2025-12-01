@@ -46,18 +46,16 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const { isListening, setListening, isAssistantOpen, setAssistantOpen } = useVoiceStore();
+  const { setAssistantOpen } = useVoiceStore();
   const itemCount = useCartStore((state) => state.itemCount);
   const loadCart = useCartStore(state => state.loadCart);
   const loadWishlist = useWishlistStore(state => state.loadWishlist);
   const { user, setUser, setSession } = useAuthStore();
-  const [liveMessage, setLiveMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   
-  const { executeCommand } = useVoiceCommands(setLiveMessage, setShowHelp);
   usePreferenceEffects();
   useRealtimeOrders();
   useRealtimeCart();
@@ -95,7 +93,7 @@ const AppContent = () => {
     const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
     if (!hasSeenOnboarding) {
       setShowOnboarding(true);
-      speechService.speak('Welcome to AccessShop, your voice-first accessible shopping experience');
+      // Don't auto-speak on mount - let user interact first
     }
   }, []);
 
@@ -114,85 +112,7 @@ const AppContent = () => {
     setShowOnboarding(false);
   };
 
-  const handleVoiceStart = async () => {
-    console.log('🎤 Starting push-to-talk...');
-    speechService.stopSpeaking();
-    
-    try {
-      setListening(true);
-      setLiveMessage('Listening... Speak now, release Ctrl+V when done');
-      await speechService.startPushToTalk();
-      console.log('✅ Push-to-talk started successfully');
-    } catch (error) {
-      console.error('❌ Voice start error:', error);
-      setListening(false);
-      setLiveMessage('Voice input error');
-    }
-  };
-
-  const handleVoiceStop = async () => {
-    console.log('🛑 Stopping push-to-talk...');
-    setLiveMessage('Processing...');
-    
-    try {
-      const transcript = await speechService.stopPushToTalk();
-      setListening(false);
-      
-      console.log('📝 Final transcript:', transcript);
-      
-      if (!transcript || transcript.trim() === '') {
-        setLiveMessage('No speech detected');
-        await speechService.speak('I didn\'t hear anything. Please try again.');
-        return;
-      }
-      
-      const command = voiceCommandParser.parse(transcript);
-      console.log('🔍 Parsed command:', command);
-      
-      if (command) {
-        setLiveMessage(`Executing: ${transcript}`);
-        await executeCommand(command);
-      } else {
-        setLiveMessage(`Not recognized: "${transcript}"`);
-        await speechService.speak(`I didn't recognize "${transcript}" as a command. Say "what can I say" to hear available commands.`);
-      }
-    } catch (error) {
-      console.error('❌ Voice stop error:', error);
-      setListening(false);
-      setLiveMessage('Voice input error');
-    }
-  };
-
   useEffect(() => {
-    let isKeyDown = false;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent triggering multiple times while key is held
-      if (isKeyDown) return;
-      
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
-        e.preventDefault();
-        isKeyDown = true;
-        if (!isListening) {
-          handleVoiceStart();
-        }
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      // Stop when either V or Ctrl is released
-      if ((e.key.toLowerCase() === 'v' || e.key === 'Control' || e.key === 'Meta') && isKeyDown) {
-        e.preventDefault();
-        isKeyDown = false;
-        if (isListening) {
-          handleVoiceStop();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
     shortcutManager.register({
       key: 'k',
       ctrl: true,
@@ -212,18 +132,14 @@ const AppContent = () => {
     });
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
       shortcutManager.destroy();
     };
-  }, [isListening, handleVoiceStart, handleVoiceStop]);
+  }, [showShortcuts]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <SkipToContentLink />
-      <Header onVoiceToggle={handleVoiceStart} />
-      <MicStatusPill />
-      <LiveRegion message={liveMessage} />
+      <Header />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/s/:query" element={<Search />} />
@@ -242,14 +158,6 @@ const AppContent = () => {
       <DemoMode />
       {showShortcuts && <KeyboardShortcutsPanel />}
       <Footer />
-      <AssistantPanel 
-        isOpen={isAssistantOpen} 
-        onClose={() => setAssistantOpen(false)}
-        context={{
-          page: location.pathname,
-          cartCount: itemCount
-        }}
-      />
       <HelpOverlay isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <OnboardingModal isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
       <VoiceInterface onSpeakingChange={setIsAISpeaking} />
