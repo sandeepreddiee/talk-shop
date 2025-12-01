@@ -110,11 +110,11 @@ export const DemoMode = () => {
       <div className="fixed top-20 left-4 z-40">
         <Button
           onClick={startDemo}
-          size="lg"
-          className="shadow-lg"
+          size="sm"
+          className="shadow-lg rounded-full"
           aria-label="Start demo mode"
         >
-          <Play className="mr-2 h-5 w-5" />
+          <Play className="mr-2 h-4 w-4" />
           Start Demo
         </Button>
       </div>
