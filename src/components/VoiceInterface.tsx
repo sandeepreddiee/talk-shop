@@ -14,9 +14,10 @@ import { productService } from '@/services/database/productService';
 
 interface VoiceInterfaceProps {
   onSpeakingChange: (speaking: boolean) => void;
+  trigger?: boolean;
 }
 
-const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => {
+const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange, trigger }) => {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -840,6 +841,17 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       chatRef.current?.disconnect();
     };
   }, []);
+
+  // Handle Ctrl+V trigger
+  useEffect(() => {
+    if (trigger !== undefined) {
+      if (!isConnected && !isLoading) {
+        startConversation();
+      } else if (isConnected) {
+        endConversation();
+      }
+    }
+  }, [trigger]);
 
   return (
     <div className="fixed bottom-8 right-8 z-50 flex flex-col items-center gap-2">

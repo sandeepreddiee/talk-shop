@@ -6,8 +6,8 @@ import { RatingStars } from '@/components/RatingStars';
 import { useCartStore } from '@/stores/useCartStore';
 import { useVoiceStore } from '@/stores/useVoiceStore';
 import { speechService } from '@/services/speechService';
-import { AssistantPanel } from '@/components/AssistantPanel';
 import { WishlistButton } from '@/components/WishlistButton';
+import { ProductReviews } from '@/components/ProductReviews';
 import { toast } from 'sonner';
 import { ShoppingCart, Zap, MessageCircle } from 'lucide-react';
 import { Product } from '@/types';
@@ -21,7 +21,7 @@ export default function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const addItem = useCartStore((state) => state.addItem);
-  const { isAssistantOpen, setAssistantOpen } = useVoiceStore();
+  const { setAssistantOpen } = useVoiceStore();
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -93,8 +93,14 @@ export default function ProductPage() {
   };
 
   const handleAskAssistant = () => {
-    setAssistantOpen(true);
-    activityService.logActivity('open_assistant', { context: 'product', productId: product?.id });
+    // Trigger the global VoiceInterface by simulating Ctrl+V
+    const event = new KeyboardEvent('keydown', {
+      key: 'v',
+      ctrlKey: true,
+      bubbles: true
+    });
+    window.dispatchEvent(event);
+    activityService.logActivity('open_voice_assistant', { context: 'product', productId: product?.id });
   };
 
   const handleListenDescription = async () => {
@@ -231,25 +237,7 @@ export default function ProductPage() {
         </div>
       </div>
 
-      <AssistantPanel 
-        isOpen={isAssistantOpen} 
-        onClose={() => setAssistantOpen(false)}
-        context={{
-          product: product ? {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            rating: product.rating,
-            reviewCount: product.reviewCount,
-            category: product.category,
-            description: product.description,
-            features: product.features,
-            inStock: product.inStock,
-            image: product.image
-          } : undefined,
-          page: 'product'
-        }}
-      />
+      <ProductReviews productId={product.id} />
     </main>
   );
 }
