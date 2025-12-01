@@ -2,9 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingCart, User, Package, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { VoiceButton } from './VoiceButton';
 import { useCartStore } from '@/stores/useCartStore';
-import { useVoiceStore } from '@/stores/useVoiceStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,14 +16,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface HeaderProps {
-  onVoiceToggle: () => void;
-}
-
-export const Header = ({ onVoiceToggle }: HeaderProps) => {
+export const Header = () => {
   const navigate = useNavigate();
   const itemCount = useCartStore((state) => state.itemCount);
-  const isListening = useVoiceStore((state) => state.isListening);
   const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const categories = ['Audio', 'Wearables', 'Accessories', 'Gaming', 'Video', 'Power'];
@@ -83,12 +76,6 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 rounded-r-none h-10 border-0"
             aria-label="Search products"
-          />
-          <VoiceButton
-            isListening={isListening}
-            onClick={onVoiceToggle}
-            variant="outline"
-            className="rounded-none border-0 border-l h-10 bg-white hover:bg-secondary"
           />
           <Button type="submit" size="icon" className="rounded-l-none h-10 bg-primary hover:bg-primary/90" aria-label="Search">
             <Search className="h-5 w-5" aria-hidden="true" />
