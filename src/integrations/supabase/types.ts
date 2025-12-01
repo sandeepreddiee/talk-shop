@@ -183,6 +183,7 @@ export type Database = {
           image: string | null
           in_stock: boolean | null
           is_featured: boolean | null
+          keywords: string[] | null
           name: string
           original_price: number | null
           price: number
@@ -202,6 +203,7 @@ export type Database = {
           image?: string | null
           in_stock?: boolean | null
           is_featured?: boolean | null
+          keywords?: string[] | null
           name: string
           original_price?: number | null
           price: number
@@ -221,6 +223,7 @@ export type Database = {
           image?: string | null
           in_stock?: boolean | null
           is_featured?: boolean | null
+          keywords?: string[] | null
           name?: string
           original_price?: number | null
           price?: number
