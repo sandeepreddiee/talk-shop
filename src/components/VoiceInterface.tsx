@@ -9,6 +9,7 @@ import { useWishlistStore } from '@/stores/useWishlistStore';
 import { useVoiceStore } from '@/stores/useVoiceStore';
 import { supabase } from '@/integrations/supabase/client';
 import { speechService } from '@/services/speechService';
+import { productService } from '@/services/database/productService';
 
 interface VoiceInterfaceProps {
   onSpeakingChange: (speaking: boolean) => void;
@@ -72,30 +73,35 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
 
   const getClientTools = () => ({
     search_products: async (args: { query: string; category?: string }) => {
-      console.log('🔍 Searching:', args);
+      console.log('🔍 Searching with keywords:', args);
       try {
-        let query = supabase
-          .from('products')
-          .select('id, name, price, rating, category, description')
-          .ilike('name', `%${args.query}%`);
+        // Use productService which now searches through keywords
+        const results = await productService.searchProducts(args.query);
         
+        // Filter by category if specified
+        let filteredResults = results;
         if (args.category) {
-          query = query.eq('category', args.category);
+          filteredResults = results.filter(p => 
+            p.category.toLowerCase() === args.category?.toLowerCase()
+          );
         }
         
-        const { data, error } = await query.limit(5);
-        
-        if (error) throw error;
-        
-        if (!data || data.length === 0) {
+        if (filteredResults.length === 0) {
           return { success: false, message: `No products found for "${args.query}"` };
         }
         
         navigate(`/s/${encodeURIComponent(args.query)}`);
         return { 
           success: true, 
-          message: `Found ${data.length} products`,
-          products: data 
+          message: `Found ${filteredResults.length} products matching "${args.query}"`,
+          products: filteredResults.slice(0, 5).map(p => ({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            rating: p.rating,
+            category: p.category,
+            description: p.description
+          }))
         };
       } catch (error) {
         console.error('Search error:', error);

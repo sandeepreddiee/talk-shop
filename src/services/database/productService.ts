@@ -58,10 +58,11 @@ export const productService = {
   },
 
   searchProducts: async (query: string): Promise<Product[]> => {
+    // Search in name, description, category, and keywords array
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%`);
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%,keywords.cs.{${query}}`);
 
     if (error) {
       console.error('Error searching products:', error);
