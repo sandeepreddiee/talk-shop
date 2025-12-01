@@ -690,6 +690,36 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onSpeakingChange }) => 
       }
     },
     
+    lookup_city_by_zip: async (args: { zipCode: string }) => {
+      console.log('🔍 Looking up city for ZIP:', args.zipCode);
+      try {
+        const { data, error } = await supabase.functions.invoke('lookup-zip', {
+          body: { zipCode: args.zipCode }
+        });
+
+        if (error) throw error;
+        
+        if (!data.city) {
+          return { 
+            success: false, 
+            message: "Could not find city for that ZIP code. Please verify and try again." 
+          };
+        }
+
+        console.log('🔍 Found city:', data.city);
+        return {
+          success: true,
+          city: data.city,
+          state: data.state,
+          zipCode: data.zipCode,
+          message: `Found ${data.city}, ${data.state}`
+        };
+      } catch (error) {
+        console.error('ZIP lookup error:', error);
+        return { success: false, message: "Failed to lookup ZIP code" };
+      }
+    },
+
     update_shipping_address: async (args: { address?: string; city?: string; zipCode?: string }) => {
       console.log('📮 Updating shipping address:', args);
       console.log('📮 Current page:', location.pathname);
