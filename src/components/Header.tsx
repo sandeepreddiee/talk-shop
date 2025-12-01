@@ -89,7 +89,14 @@ export const Header = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/wishlist')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/wishlist');
+                  }
+                }}
                 className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white flex flex-col items-center h-auto py-1 px-3"
+                tabIndex={0}
                 aria-label="Wishlist"
               >
                 <Heart className="h-5 w-5" aria-hidden="true" />
@@ -100,7 +107,14 @@ export const Header = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/orders')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/orders');
+                  }
+                }}
                 className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white flex flex-col items-center h-auto py-1 px-3"
+                tabIndex={0}
                 aria-label="Orders"
               >
                 <Package className="h-5 w-5" aria-hidden="true" />
@@ -111,7 +125,14 @@ export const Header = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/account')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/account');
+                  }
+                }}
                 className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white flex flex-col items-center h-auto py-1 px-3"
+                tabIndex={0}
                 aria-label="Account"
               >
                 <User className="h-5 w-5" aria-hidden="true" />
@@ -122,7 +143,14 @@ export const Header = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/cart')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/cart');
+                  }
+                }}
                 className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white relative flex items-center gap-2 h-auto py-1 px-3"
+                tabIndex={0}
                 aria-label={`Cart, ${itemCount} items`}
               >
                 <div className="relative">
