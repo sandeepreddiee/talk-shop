@@ -47,26 +47,26 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background" role="banner">
-      <div className="container flex h-16 items-center gap-4 px-4">
+    <header className="sticky top-0 z-40 w-full bg-[hsl(var(--header-bg))] text-white shadow-md" role="banner">
+      <div className="container flex h-16 items-center gap-3 px-4">
         <Link
           to="/"
-          className="flex items-center space-x-2 font-bold text-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+          className="flex items-center space-x-2 font-bold text-2xl hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-2 transition-colors"
           aria-label="AccessShop Home"
         >
-          <Package className="h-6 w-6" aria-hidden="true" />
-          <span>AccessShop</span>
+          <Package className="h-8 w-8" aria-hidden="true" />
+          <span className="hidden sm:inline">AccessShop</span>
         </Link>
 
         <Select>
           <SelectTrigger
-            className="w-[150px]"
+            className="w-[120px] bg-white text-foreground border-0 h-10"
             aria-label="Select product category"
           >
             <SelectValue placeholder="All" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Departments</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             {categories.map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat}
@@ -75,80 +75,88 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
           </SelectContent>
         </Select>
 
-        <form onSubmit={handleSearch} className="flex-1 flex gap-2" role="search">
+        <form onSubmit={handleSearch} className="flex-1 flex" role="search">
           <Input
             type="search"
             placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1"
+            className="flex-1 rounded-r-none h-10 border-0"
             aria-label="Search products"
           />
           <VoiceButton
             isListening={isListening}
             onClick={onVoiceToggle}
             variant="outline"
+            className="rounded-none border-0 border-l h-10 bg-white hover:bg-secondary"
           />
-          <Button type="submit" size="icon" aria-label="Search">
+          <Button type="submit" size="icon" className="rounded-l-none h-10 bg-primary hover:bg-primary/90" aria-label="Search">
             <Search className="h-5 w-5" aria-hidden="true" />
           </Button>
         </form>
 
-        <nav className="flex items-center gap-2" aria-label="Main navigation">
+        <nav className="flex items-center gap-1" aria-label="Main navigation">
           {user ? (
             <>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/wishlist')}
+                className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white flex flex-col items-center h-auto py-1 px-3"
                 aria-label="Wishlist"
               >
-                <span className="hidden sm:inline">Wishlist</span>
-                <Heart className="h-5 w-5 sm:ml-2" aria-hidden="true" />
+                <Heart className="h-5 w-5" aria-hidden="true" />
+                <span className="text-xs font-normal">Wishlist</span>
               </Button>
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/orders')}
+                className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white flex flex-col items-center h-auto py-1 px-3"
                 aria-label="Orders"
               >
-                <span className="hidden sm:inline">Orders</span>
-                <Package className="h-5 w-5 sm:ml-2" aria-hidden="true" />
+                <Package className="h-5 w-5" aria-hidden="true" />
+                <span className="text-xs font-normal">Orders</span>
               </Button>
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/account')}
+                className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white flex flex-col items-center h-auto py-1 px-3"
                 aria-label="Account"
               >
-                <span className="hidden sm:inline">Account</span>
-                <User className="h-5 w-5 sm:ml-2" aria-hidden="true" />
+                <User className="h-5 w-5" aria-hidden="true" />
+                <span className="text-xs font-normal">Account</span>
               </Button>
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/cart')}
-                className="relative"
+                className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white relative flex items-center gap-2 h-auto py-1 px-3"
                 aria-label={`Cart, ${itemCount} items`}
               >
-                <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-                {itemCount > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                    aria-hidden="true"
-                  >
-                    {itemCount}
-                  </span>
-                )}
+                <div className="relative">
+                  <ShoppingCart className="h-6 w-6" aria-hidden="true" />
+                  {itemCount > 0 && (
+                    <span
+                      className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                      aria-hidden="true"
+                    >
+                      {itemCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs font-normal hidden sm:inline">Cart</span>
               </Button>
 
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleLogout}
+                className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white ml-2"
                 aria-label="Sign out"
               >
                 Sign Out
@@ -156,10 +164,19 @@ export const Header = ({ onVoiceToggle }: HeaderProps) => {
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/login')}
+                className="text-white hover:bg-[hsl(var(--header-hover))] hover:text-white"
+              >
                 Sign In
               </Button>
-              <Button size="sm" onClick={() => navigate('/signup')}>
+              <Button 
+                size="sm" 
+                onClick={() => navigate('/signup')}
+                className="bg-primary hover:bg-primary/90"
+              >
                 Sign Up
               </Button>
             </>

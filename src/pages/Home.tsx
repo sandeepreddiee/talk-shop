@@ -40,19 +40,37 @@ export default function Home() {
     );
   }
 
+  const dealProducts = products.filter(p => p.originalPrice && p.originalPrice > p.price);
+  const regularProducts = products.filter(p => !p.originalPrice || p.originalPrice <= p.price);
+
   return (
-    <main id="main-content" className="container py-8 px-4">
-      <section aria-labelledby="featured-heading" className="mb-12">
-        <div className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground rounded-lg p-12 mb-8">
-          <h1 id="featured-heading" className="text-4xl font-bold mb-4">Welcome to AccessShop</h1>
-          <p className="text-xl">Voice-first shopping made accessible for everyone</p>
+    <main id="main-content" className="min-h-screen bg-background">
+      <section aria-labelledby="featured-heading" className="bg-gradient-to-b from-[hsl(var(--header-bg))] to-background text-white py-8">
+        <div className="container px-4">
+          <h1 id="featured-heading" className="text-3xl md:text-4xl font-normal mb-2">Welcome to AccessShop</h1>
+          <p className="text-lg text-gray-300">Voice-first shopping made accessible for everyone</p>
         </div>
       </section>
 
-      <section aria-labelledby="products-heading">
-        <h2 id="products-heading" className="text-2xl font-bold mb-6">All Products ({products.length} items)</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
+      {dealProducts.length > 0 && (
+        <section aria-labelledby="deals-heading" className="container px-4 py-8">
+          <h2 id="deals-heading" className="text-2xl font-normal mb-6 text-foreground">Today's Deals</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {dealProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onQuickListen={() => handleQuickListen(product)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section aria-labelledby="products-heading" className="container px-4 py-8">
+        <h2 id="products-heading" className="text-2xl font-normal mb-6 text-foreground">All Products</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {regularProducts.map((product) => (
             <ProductCard
               key={product.id}
               product={product}

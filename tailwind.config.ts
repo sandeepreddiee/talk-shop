@@ -57,6 +57,18 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        header: {
+          bg: "hsl(var(--header-bg))",
+          hover: "hsl(var(--header-hover))",
+        },
+        deal: {
+          badge: "hsl(var(--deal-badge))",
+          text: "hsl(var(--deal-text))",
+        },
+        prime: {
+          badge: "hsl(var(--prime-badge))",
+          text: "hsl(var(--prime-text))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

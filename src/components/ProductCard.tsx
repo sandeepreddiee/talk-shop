@@ -30,9 +30,13 @@ export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
     }
   };
 
+  const savingsPercent = product.originalPrice 
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
+
   return (
     <Card
-      className="group cursor-pointer hover:shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+      className="group cursor-pointer hover:shadow-xl transition-all duration-200 border-border focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 bg-card relative"
       onClick={handleClick}
       onKeyPress={handleKeyPress}
       onFocus={handleFocus}
@@ -40,34 +44,45 @@ export const ProductCard = ({ product, onQuickListen }: ProductCardProps) => {
       role="article"
       aria-label={`${product.name}, $${product.price}, ${product.rating} stars, ${product.reviewCount} reviews`}
     >
-      <div className="aspect-square overflow-hidden rounded-t-lg bg-muted">
+      {savingsPercent > 0 && (
+        <div className="absolute top-2 left-2 bg-[hsl(var(--deal-badge))] text-[hsl(var(--deal-text))] text-xs font-bold px-2 py-1 rounded z-10">
+          -{savingsPercent}% OFF
+        </div>
+      )}
+      <div className="aspect-square overflow-hidden bg-white flex items-center justify-center p-4">
         <img
           src={product.image}
           alt={product.name}
-          className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+          className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-200"
           loading="lazy"
         />
       </div>
       <div className="p-4 space-y-2">
-        <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary">
+        <h3 className="font-normal text-sm line-clamp-2 text-foreground group-hover:text-primary">
           {product.name}
         </h3>
         <RatingStars rating={product.rating} count={product.reviewCount} size="sm" />
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-bold" aria-label={`Price: $${product.price}`}>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-2xl font-normal text-[hsl(var(--deal-badge))]" aria-label={`Price: $${product.price}`}>
             ${product.price}
           </span>
           {product.originalPrice && (
-            <span className="text-sm text-muted-foreground line-through" aria-label={`Original price: $${product.originalPrice}`}>
-              ${product.originalPrice}
-            </span>
+            <>
+              <span className="text-sm text-muted-foreground line-through" aria-label={`Original price: $${product.originalPrice}`}>
+                ${product.originalPrice}
+              </span>
+            </>
           )}
         </div>
         {product.prime && (
-          <span className="inline-block text-xs px-2 py-1 bg-accent text-accent-foreground rounded">
-            Prime
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-block text-xs font-bold px-2 py-0.5 bg-[hsl(var(--prime-badge))] text-[hsl(var(--prime-text))] rounded">
+              prime
+            </span>
+            <span className="text-xs text-muted-foreground">FREE delivery</span>
+          </div>
         )}
+        <p className="text-xs text-muted-foreground">Get it by tomorrow</p>
         {onQuickListen && (
           <Button
             variant="outline"
