@@ -57,11 +57,6 @@ export class VoiceCommandHandler {
       return { success: true, message: 'Opening account' };
     }
 
-    if (this.matchesPatterns(text, ['wishlist', 'my wishlist', 'view wishlist', 'show wishlist'])) {
-      this.navigate('/wishlist');
-      return { success: true, message: 'Opening wishlist' };
-    }
-
     // Search commands
     const searchMatch = text.match(/(?:search for|find|look for|show me)\s+(.+)/i);
     if (searchMatch) {
@@ -86,9 +81,15 @@ export class VoiceCommandHandler {
       return await this.addToCartByName(productName);
     }
 
-    // Wishlist
+    // Wishlist - IMPORTANT: Check "add to wishlist" BEFORE "wishlist" navigation
     if (this.matchesPatterns(text, ['add to wishlist', 'add this to wishlist', 'save to wishlist', 'wishlist this'])) {
       return await this.addToWishlist();
+    }
+
+    // Wishlist navigation - only matches after "add to wishlist" check
+    if (this.matchesPatterns(text, ['wishlist', 'my wishlist', 'view wishlist', 'show wishlist'])) {
+      this.navigate('/wishlist');
+      return { success: true, message: 'Opening wishlist' };
     }
 
     // Product details
